@@ -3,6 +3,15 @@
     "maximumHealth": 100,
     "pickupRadius": 4.2
   },
+  "startingLoadout": {
+    "id": "loadout.wallrunner-default",
+    "guns": [
+      "weapon.aether-carbine"
+    ],
+    "autoPowers": [
+      "power.orbit-pulse"
+    ]
+  },
   "weapons": [
     {
       "id": "weapon.aether-carbine",
@@ -145,5 +154,12 @@
         ]
       }
     ]
+  },
+  "runRewards": {
+    "victoryReward": {
+      "id": "reward.choir-ogre-banished",
+      "displayName": "Choir Ogre Banished",
+      "persistent": false
+    }
   }
 }

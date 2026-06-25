@@ -234,6 +234,7 @@ namespace Deucarian.TemplateGameMovementFps.PlayModeTests
             Assert.IsTrue(controller.ChooseDraftForTest(0).Succeeded);
 
             Assert.IsFalse(controller.DraftOpen);
+            Assert.AreEqual(1, controller.CurrentRunSummary.UpgradesChosen.Count);
             Assert.IsTrue(
                 controller.Progression.GunDamageBonus > previousDamage ||
                 controller.Progression.GunCadenceMultiplier > previousCadence ||
@@ -293,6 +294,47 @@ namespace Deucarian.TemplateGameMovementFps.PlayModeTests
             Assert.IsTrue(controller.MiniBossDefeated);
             Assert.IsTrue(controller.Victory);
             Assert.AreEqual(MovementFpsRunState.Victory, controller.RunState);
+            MovementFpsRunSummary summary = controller.CurrentRunSummary;
+            Assert.AreEqual(MovementFpsRunOutcome.Victory, summary.Outcome);
+            Assert.That(summary.KillCount, Is.GreaterThanOrEqualTo(1));
+            Assert.AreEqual(1, summary.MiniBossKills);
+            Assert.AreEqual(1, summary.Rewards.Count);
+            Assert.AreEqual(BasicMovementFpsGame.ChoirOgreRewardId, summary.Rewards[0].Id);
+
+            controller.RestartRunForTest();
+            yield return null;
+
+            MovementFpsRunSummary reset = controller.CurrentRunSummary;
+            Assert.AreEqual(MovementFpsRunOutcome.Running, reset.Outcome);
+            Assert.AreEqual(0, reset.KillCount);
+            Assert.AreEqual(0, reset.Rewards.Count);
+
+            Object.Destroy(controller.gameObject);
+        }
+
+        [UnityTest]
+        public IEnumerator DefeatSummaryTracksExperienceAndRestartResets()
+        {
+            MovementFpsTemplateController controller = CreateController();
+            yield return null;
+
+            controller.CollectExperienceForTest(6);
+            controller.ApplyPlayerDamage(999d);
+            yield return null;
+
+            MovementFpsRunSummary summary = controller.CurrentRunSummary;
+            Assert.IsTrue(controller.Defeated);
+            Assert.AreEqual(MovementFpsRunOutcome.Defeat, summary.Outcome);
+            Assert.AreEqual(6, summary.ExperienceGained);
+            Assert.IsTrue(summary.Completed);
+
+            controller.RestartRunForTest();
+            yield return null;
+
+            MovementFpsRunSummary reset = controller.CurrentRunSummary;
+            Assert.AreEqual(MovementFpsRunOutcome.Running, reset.Outcome);
+            Assert.AreEqual(0, reset.ExperienceGained);
+            Assert.AreEqual(0, reset.UpgradesChosen.Count);
 
             Object.Destroy(controller.gameObject);
         }

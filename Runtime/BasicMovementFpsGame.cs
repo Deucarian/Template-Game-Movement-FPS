@@ -1,5 +1,6 @@
 using Deucarian.Combat;
 using Deucarian.RunUpgrades;
+using Deucarian.TemplateGameMovementFps.Content;
 using Deucarian.TemplateGameMovementFps.Run;
 
 namespace Deucarian.TemplateGameMovementFps
@@ -32,11 +33,21 @@ namespace Deucarian.TemplateGameMovementFps
 
         public const int FirstLevelExperienceRequirement = 10;
         public const int DraftChoiceCount = 3;
+        public const string CarbineId = "weapon.aether-carbine";
+        public const string RiftLauncherId = "gun.rift-launcher";
+        public const string OrbitPulseId = "power.orbit-pulse";
+        public const string ChainBoltId = "power.chain-bolt";
+        public const string GroundRiftId = "power.ground-rift";
+        public const string HuskThrallId = "enemy.husk-thrall";
+        public const string LeapingRunnerId = "enemy.leaping-runner";
+        public const string BoneBulwarkId = "enemy.bone-bulwark";
+        public const string ChoirOgreId = "enemy.choir-ogre";
+        public const string ChoirOgreRewardId = "reward.choir-ogre-banished";
 
         public static MovementFpsGunDefinition CreateCarbineDefinition()
         {
             return new MovementFpsGunDefinition(
-                id: "weapon.aether-carbine",
+                id: CarbineId,
                 displayName: "Aether Carbine",
                 damage: 26d,
                 fireIntervalSeconds: 0.16f,
@@ -48,7 +59,7 @@ namespace Deucarian.TemplateGameMovementFps
         public static MovementFpsGunDefinition CreateRiftLauncherDefinition()
         {
             return new MovementFpsGunDefinition(
-                id: "gun.rift-launcher",
+                id: RiftLauncherId,
                 displayName: "Rift Launcher",
                 kind: MovementFpsGunKind.Projectile,
                 damageType: StormDamageType,
@@ -67,7 +78,7 @@ namespace Deucarian.TemplateGameMovementFps
         public static MovementFpsAutoPowerDefinition CreateOrbitPulseDefinition()
         {
             return new MovementFpsAutoPowerDefinition(
-                id: "power.orbit-pulse",
+                id: OrbitPulseId,
                 displayName: "Orbit Pulse",
                 kind: MovementFpsAutoPowerKind.OrbitPulse,
                 damageType: VoidDamageType,
@@ -81,7 +92,7 @@ namespace Deucarian.TemplateGameMovementFps
         public static MovementFpsAutoPowerDefinition CreateChainBoltDefinition()
         {
             return new MovementFpsAutoPowerDefinition(
-                id: "power.chain-bolt",
+                id: ChainBoltId,
                 displayName: "Chain Bolt",
                 kind: MovementFpsAutoPowerKind.ChainBolt,
                 damageType: StormDamageType,
@@ -95,7 +106,7 @@ namespace Deucarian.TemplateGameMovementFps
         public static MovementFpsAutoPowerDefinition CreateGroundRiftDefinition()
         {
             return new MovementFpsAutoPowerDefinition(
-                id: "power.ground-rift",
+                id: GroundRiftId,
                 displayName: "Ground Rift",
                 kind: MovementFpsAutoPowerKind.GroundRift,
                 damageType: BoneDamageType,
@@ -109,7 +120,7 @@ namespace Deucarian.TemplateGameMovementFps
         public static MovementFpsEnemyDefinition CreateEnemyDefinition()
         {
             return new MovementFpsEnemyDefinition(
-                id: "enemy.husk-thrall",
+                id: HuskThrallId,
                 displayName: "Husk Thrall",
                 maximumHealth: 32d,
                 moveSpeed: 4.4f,
@@ -123,7 +134,7 @@ namespace Deucarian.TemplateGameMovementFps
         public static MovementFpsEnemyDefinition CreateLeapingRunnerDefinition()
         {
             return new MovementFpsEnemyDefinition(
-                id: "enemy.leaping-runner",
+                id: LeapingRunnerId,
                 displayName: "Leaping Runner",
                 maximumHealth: 20d,
                 moveSpeed: 6.4f,
@@ -137,7 +148,7 @@ namespace Deucarian.TemplateGameMovementFps
         public static MovementFpsEnemyDefinition CreateBoneBulwarkDefinition()
         {
             return new MovementFpsEnemyDefinition(
-                id: "enemy.bone-bulwark",
+                id: BoneBulwarkId,
                 displayName: "Bone Bulwark",
                 maximumHealth: 96d,
                 moveSpeed: 2.7f,
@@ -151,7 +162,7 @@ namespace Deucarian.TemplateGameMovementFps
         public static MovementFpsEnemyDefinition CreateChoirOgreDefinition()
         {
             return new MovementFpsEnemyDefinition(
-                id: "enemy.choir-ogre",
+                id: ChoirOgreId,
                 displayName: "Choir Ogre",
                 maximumHealth: 850d,
                 moveSpeed: 3.15f,
@@ -216,6 +227,40 @@ namespace Deucarian.TemplateGameMovementFps
             return new MovementFpsPlayerDefinition(
                 maximumHealth: 100d,
                 pickupRadius: 4.2f);
+        }
+
+        public static MovementFpsStartingLoadoutDefinition CreateStartingLoadoutDefinition()
+        {
+            return new MovementFpsStartingLoadoutDefinition(
+                id: "loadout.wallrunner-default",
+                startingGunIds: new[] { CarbineId },
+                startingPowerIds: new[] { OrbitPulseId });
+        }
+
+        public static MovementFpsContentLibrary CreateContentLibrary()
+        {
+            return new MovementFpsContentLibrary(
+                guns: new[]
+                {
+                    CreateCarbineDefinition(),
+                    CreateRiftLauncherDefinition()
+                },
+                powers: new[]
+                {
+                    CreateOrbitPulseDefinition(),
+                    CreateChainBoltDefinition(),
+                    CreateGroundRiftDefinition()
+                },
+                enemies: new[]
+                {
+                    CreateEnemyDefinition(),
+                    CreateLeapingRunnerDefinition(),
+                    CreateBoneBulwarkDefinition(),
+                    CreateChoirOgreDefinition()
+                },
+                upgrades: CreateUpgradeCatalog(),
+                startingLoadout: CreateStartingLoadoutDefinition(),
+                wave: CreatePrototypeWaveDefinition());
         }
 
         public static CombatCatalog CreateCombatCatalog()

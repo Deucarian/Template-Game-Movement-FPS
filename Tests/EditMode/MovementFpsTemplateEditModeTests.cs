@@ -1,6 +1,7 @@
 using System.IO;
 using Deucarian.Combat;
 using Deucarian.RunUpgrades;
+using Deucarian.TemplateGameMovementFps.Content;
 using Deucarian.TemplateGameMovementFps.Progression;
 using Deucarian.TemplateGameMovementFps.Run;
 using NUnit.Framework;
@@ -148,6 +149,109 @@ namespace Deucarian.TemplateGameMovementFps.Tests
         }
 
         [Test]
+        public void DefaultContentValidationPasses()
+        {
+            MovementFpsContentValidationReport report = MovementFpsContentValidator.Validate(BasicMovementFpsGame.CreateContentLibrary());
+
+            Assert.IsTrue(report.IsValid, string.Join("\n", report.Errors));
+        }
+
+        [Test]
+        public void ContentValidationReportsInvalidIdsAndReferences()
+        {
+            MovementFpsGunDefinition carbine = BasicMovementFpsGame.CreateCarbineDefinition();
+            MovementFpsAutoPowerDefinition pulse = BasicMovementFpsGame.CreateOrbitPulseDefinition();
+            MovementFpsEnemyDefinition husk = BasicMovementFpsGame.CreateEnemyDefinition();
+            MovementFpsEnemyDefinition missingRunner = BasicMovementFpsGame.CreateLeapingRunnerDefinition();
+            MovementFpsEnemyDefinition missingBoss = BasicMovementFpsGame.CreateChoirOgreDefinition();
+            var invalidUpgrade = new RunUpgradeDefinition(
+                new RunUpgradeId("upgrade.invalid-target"),
+                RunUpgradeRarity.Common,
+                weight: 1,
+                maxRank: 1,
+                effects: new[]
+                {
+                    new RunUpgradeEffectDescriptor(
+                        BasicMovementFpsGame.AdditiveStatEffectId,
+                        new RunUpgradeTargetId("stat.missing.target"),
+                        1d)
+                });
+            var invalidWave = new MovementFpsWaveDefinition(
+                id: "wave.invalid",
+                displayName: "Invalid Wave",
+                segments: new[]
+                {
+                    new MovementFpsWaveSegmentDefinition(
+                        startTimeSeconds: 0f,
+                        spawnIntervalSeconds: 1f,
+                        batchSize: 1,
+                        maxAlive: 1,
+                        enemies: new[]
+                        {
+                            new MovementFpsWeightedEnemyDefinition(missingRunner, 0f)
+                        })
+                },
+                miniBossEnemy: missingBoss,
+                miniBossSpawnTimeSeconds: 1f,
+                victoryTimeSeconds: 2f,
+                escalationPerMinute: 1f);
+            var invalidLibrary = new MovementFpsContentLibrary(
+                guns: new[] { carbine, carbine },
+                powers: new[] { pulse, pulse },
+                enemies: new[] { husk, husk },
+                upgrades: new RunUpgradeCatalog(new[] { invalidUpgrade }),
+                startingLoadout: new MovementFpsStartingLoadoutDefinition(
+                    "loadout.invalid",
+                    new[] { "gun.missing" },
+                    new[] { "power.missing" }),
+                wave: invalidWave);
+
+            MovementFpsContentValidationReport report = MovementFpsContentValidator.Validate(invalidLibrary);
+
+            Assert.IsFalse(report.IsValid);
+            string errors = string.Join("\n", report.Errors);
+            StringAssert.Contains("Duplicate weapon id", errors);
+            StringAssert.Contains("Duplicate power id", errors);
+            StringAssert.Contains("Duplicate enemy id", errors);
+            StringAssert.Contains("unknown target", errors);
+            StringAssert.Contains("starting gun reference 'gun.missing' does not exist", errors);
+            StringAssert.Contains("starting power reference 'power.missing' does not exist", errors);
+            StringAssert.Contains("non-positive weight", errors);
+            StringAssert.Contains("references missing enemy", errors);
+            StringAssert.Contains("references missing miniboss enemy", errors);
+        }
+
+        [Test]
+        public void RunSummaryTracksKillsExperienceUpgradesAndRewards()
+        {
+            var tracker = new MovementFpsRunSummaryTracker();
+
+            tracker.RecordKill(miniBoss: false);
+            tracker.RecordKill(miniBoss: true);
+            tracker.RecordExperience(12);
+            tracker.RecordUpgrade(BasicMovementFpsGame.CarbineDamageUpgradeId.Value);
+            tracker.RecordReward(new MovementFpsRunReward(BasicMovementFpsGame.ChoirOgreRewardId, "Choir Ogre Banished", 1));
+            tracker.Complete(MovementFpsRunOutcome.Victory);
+
+            MovementFpsRunSummary summary = tracker.CreateSummary(91.5f);
+
+            Assert.AreEqual(MovementFpsRunOutcome.Victory, summary.Outcome);
+            Assert.AreEqual(2, summary.KillCount);
+            Assert.AreEqual(1, summary.MiniBossKills);
+            Assert.AreEqual(12, summary.ExperienceGained);
+            Assert.AreEqual(1, summary.UpgradesChosen.Count);
+            Assert.AreEqual(1, summary.Rewards.Count);
+            Assert.IsTrue(summary.Completed);
+
+            tracker.Reset();
+            MovementFpsRunSummary reset = tracker.CreateSummary(0f);
+            Assert.AreEqual(MovementFpsRunOutcome.Running, reset.Outcome);
+            Assert.AreEqual(0, reset.KillCount);
+            Assert.AreEqual(0, reset.ExperienceGained);
+            Assert.AreEqual(0, reset.UpgradesChosen.Count);
+        }
+
+        [Test]
         public void SampleLoadoutJsonIsPresent()
         {
             var packageInfo = PackageInfo.FindForAssembly(typeof(BasicMovementFpsGame).Assembly);
@@ -158,6 +262,7 @@ namespace Deucarian.TemplateGameMovementFps.Tests
             Assert.IsTrue(File.Exists(loadoutPath), "Sample loadout missing: " + loadoutPath);
             string json = File.ReadAllText(loadoutPath);
             StringAssert.Contains("weapon.aether-carbine", json);
+            StringAssert.Contains("loadout.wallrunner-default", json);
             StringAssert.Contains("gun.rift-launcher", json);
             StringAssert.Contains("power.orbit-pulse", json);
             StringAssert.Contains("power.chain-bolt", json);
@@ -167,6 +272,7 @@ namespace Deucarian.TemplateGameMovementFps.Tests
             StringAssert.Contains("enemy.bone-bulwark", json);
             StringAssert.Contains("enemy.choir-ogre", json);
             StringAssert.Contains("wave.prototype-five-minute", json);
+            StringAssert.Contains("reward.choir-ogre-banished", json);
         }
     }
 }

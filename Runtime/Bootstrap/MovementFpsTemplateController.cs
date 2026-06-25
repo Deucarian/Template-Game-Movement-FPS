@@ -46,6 +46,7 @@ namespace Deucarian.TemplateGameMovementFps
         private MovementFpsEnemyDefinition _choirOgreDefinition;
         private MovementFpsWaveDefinition _waveDefinition;
         private MovementFpsWaveDirector _waveDirector;
+        private readonly MovementFpsRunSummaryTracker _runSummaryTracker = new MovementFpsRunSummaryTracker();
         private MovementFpsGunDefinition _carbineDefinition;
         private MovementFpsGunDefinition _riftLauncherDefinition;
         private MovementFpsAutoPowerDefinition _orbitPulseDefinition;
@@ -70,6 +71,7 @@ namespace Deucarian.TemplateGameMovementFps
         public MovementFpsRunState RunState => _runState;
         public float RunElapsedSeconds => _elapsedSeconds;
         public MovementFpsWaveSpawnSnapshot CurrentSpawnSnapshot => _waveDirector == null ? default : _waveDirector.CurrentSnapshot;
+        public MovementFpsRunSummary CurrentRunSummary => _runSummaryTracker.CreateSummary(_elapsedSeconds);
         public IReadOnlyList<MovementFpsEnemyActor> Enemies => _enemies;
         public int EnemyCount => _enemies.Count;
         public float PlayerPickupRadius => _playerDefinition.PickupRadius + (float)(_progression == null ? 0d : _progression.PickupRadiusBonus);
@@ -164,6 +166,7 @@ namespace Deucarian.TemplateGameMovementFps
             _miniBossDefeated = false;
             _runState = MovementFpsRunState.Running;
             _elapsedSeconds = 0f;
+            _runSummaryTracker.Reset();
             _waveDirector = new MovementFpsWaveDirector(_waveDefinition, Random.Range(int.MinValue, int.MaxValue));
             ApplyWaveTuning();
             _player.ResetPlayer(new Vector3(0f, 1.2f, -8f), Quaternion.identity);
@@ -245,10 +248,13 @@ namespace Deucarian.TemplateGameMovementFps
             }
 
             _enemies.Remove(enemy);
+            bool miniBoss = enemy.IsMiniBoss;
+            _runSummaryTracker.RecordKill(miniBoss);
             SpawnExperiencePickup(enemy.transform.position + Vector3.up * 0.4f, enemy.ExperienceDrop);
-            if (enemy.IsMiniBoss)
+            if (miniBoss)
             {
                 _miniBossDefeated = true;
+                _runSummaryTracker.RecordReward(new MovementFpsRunReward(BasicMovementFpsGame.ChoirOgreRewardId, "Choir Ogre Banished", 1));
                 CompleteVictory();
             }
 
@@ -327,6 +333,7 @@ namespace Deucarian.TemplateGameMovementFps
             _defeat = true;
             _draftOpen = false;
             _runState = MovementFpsRunState.Defeated;
+            _runSummaryTracker.Complete(MovementFpsRunOutcome.Defeat);
         }
 
         public void CollectExperience(int amount)
@@ -336,6 +343,7 @@ namespace Deucarian.TemplateGameMovementFps
                 return;
             }
 
+            _runSummaryTracker.RecordExperience(amount);
             _progression.GainExperience(amount);
             _draftOpen = _progression.HasDraft;
             _runState = _draftOpen ? MovementFpsRunState.Draft : MovementFpsRunState.Running;
@@ -347,6 +355,7 @@ namespace Deucarian.TemplateGameMovementFps
             if (result.Succeeded)
             {
                 ApplyRuntimeContentForUpgrade(result.Id);
+                _runSummaryTracker.RecordUpgrade(result.Id.Value);
             }
 
             _draftOpen = _progression.HasDraft;
@@ -545,6 +554,7 @@ namespace Deucarian.TemplateGameMovementFps
             _defeat = false;
             _draftOpen = false;
             _runState = MovementFpsRunState.Victory;
+            _runSummaryTracker.Complete(MovementFpsRunOutcome.Victory);
         }
 
         private void CreatePlayer()
@@ -668,6 +678,8 @@ namespace Deucarian.TemplateGameMovementFps
             GUILayout.Label("Movement FPS Template");
             GUILayout.Label($"HP {_player.CurrentHealth:0}/{_player.MaximumHealth:0}  Level {_progression.Level}  XP {_progression.CurrentExperience}/{_progression.RequiredExperience}");
             GUILayout.Label($"Run {_elapsedSeconds:0}s  State {_runState}  Enemies {_enemies.Count}/{CurrentSpawnSnapshot.MaxAlive}");
+            MovementFpsRunSummary summary = CurrentRunSummary;
+            GUILayout.Label($"Kills {summary.KillCount}  XP Gained {summary.ExperienceGained}  Upgrades {summary.UpgradesChosen.Count}");
             GUILayout.Label($"State {_player.Motor.State}  Speed {Vector3.ProjectOnPlane(_player.Motor.Velocity, Vector3.up).magnitude:0.0}");
             if (_player.CurrentGun != null)
             {
@@ -686,10 +698,12 @@ namespace Deucarian.TemplateGameMovementFps
             else if (_defeat)
             {
                 GUILayout.Label("Defeated - press R to restart");
+                GUILayout.Label($"Summary: survived {summary.ElapsedSeconds:0}s, kills {summary.KillCount}, XP {summary.ExperienceGained}");
             }
             else if (_victory)
             {
                 GUILayout.Label("Victory - press R to restart");
+                GUILayout.Label($"Summary: cleared in {summary.ElapsedSeconds:0}s, kills {summary.KillCount}, rewards {summary.Rewards.Count}");
             }
             else
             {

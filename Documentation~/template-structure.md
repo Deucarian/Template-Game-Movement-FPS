@@ -34,14 +34,25 @@ Local adapter for XP, draft state, and applying run-upgrade effects including pr
 Local run-state and horde-wave code:
 
 - run state enum
+- run summary tracker
+- local run reward records
 - wave definition and segment models
 - weighted enemy entries
 - wave spawn snapshots
 - horde wave director
 
+`Runtime/Content`
+
+Local content assembly and validation:
+
+- sample content library wrapper
+- starting loadout references
+- content validation report
+- content validator for IDs, upgrade targets, loadout references, wave references, and miniboss references
+
 `Runtime/Bootstrap`
 
-Template composition for the sample run. This builds the runtime arena, player, enemies, pickups, miniboss/victory flow, and simple HUD without involving Deucarian Session.
+Template composition for the sample run. This builds the runtime arena, player, enemies, pickups, miniboss/victory flow, run summary feedback, and simple HUD without involving Deucarian Session.
 
 ## Samples
 
@@ -67,7 +78,7 @@ Existing Deucarian packages used in this phase:
 - Combat: health and damage
 - Run Upgrades: draft definitions, stable IDs, weighted selection, ranks
 
-No package extraction happened in Phase 2X. Projectile launcher feel, ammo/reload timing, power cooldowns, power target selection, power placement rules, horde timing, weighted enemy pressure, miniboss flow, victory state, and arena spawn rules remain local Movement-FPS kit code.
+No package extraction happened in Phase 2Y. Projectile launcher feel, ammo/reload timing, power cooldowns, power target selection, power placement rules, horde timing, weighted enemy pressure, miniboss flow, victory state, run summaries, local reward markers, content validation, and arena spawn rules remain local Movement-FPS kit code.
 
 Not used in this phase:
 
