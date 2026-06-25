@@ -15,6 +15,9 @@ namespace Deucarian.TemplateGameMovementFps.Actors
         private float _contactTimer;
 
         public bool IsAlive => _health != null && _health.IsAlive;
+        public string DefinitionId => _definition.Id;
+        public string DisplayName => _definition.DisplayName;
+        public bool IsMiniBoss => _definition.IsMiniBoss;
         public double CurrentHealth => _health == null ? 0d : _health.CurrentHealth;
         public int ExperienceDrop => _definition.ExperienceDrop;
 
@@ -32,7 +35,7 @@ namespace Deucarian.TemplateGameMovementFps.Actors
 
             if (bodyRenderer != null)
             {
-                bodyRenderer.material.color = new Color(0.78f, 0.18f, 0.18f, 1f);
+                bodyRenderer.material.color = ResolveColor(definition);
             }
         }
 
@@ -61,7 +64,7 @@ namespace Deucarian.TemplateGameMovementFps.Actors
             }
             else if (_contactTimer <= 0f)
             {
-                _contactTimer = 0.75f;
+                _contactTimer = _definition.ContactIntervalSeconds;
                 _session.ApplyPlayerDamage(_definition.ContactDamage);
             }
         }
@@ -90,6 +93,24 @@ namespace Deucarian.TemplateGameMovementFps.Actors
             }
 
             return result;
+        }
+
+        private static Color ResolveColor(MovementFpsEnemyDefinition definition)
+        {
+            if (definition.IsMiniBoss)
+            {
+                return new Color(0.55f, 0.08f, 0.9f, 1f);
+            }
+
+            switch (definition.Id)
+            {
+                case "enemy.leaping-runner":
+                    return new Color(1f, 0.55f, 0.25f, 1f);
+                case "enemy.bone-bulwark":
+                    return new Color(0.85f, 0.82f, 0.68f, 1f);
+                default:
+                    return new Color(0.8f, 0.25f, 0.35f, 1f);
+            }
         }
     }
 }

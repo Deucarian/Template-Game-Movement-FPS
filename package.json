@@ -26,7 +26,7 @@
   "samples": [
     {
       "displayName": "Basic Movement FPS Game",
-      "description": "A playable slice with WallrunnerMotor movement, hitscan and projectile gunplay, autonomous powers, enemy spawn/chase/death, XP pickups, a simple level-up draft, and restart flow.",
+      "description": "A playable slice with WallrunnerMotor movement, hitscan and projectile gunplay, autonomous powers, horde escalation, miniboss victory flow, XP pickups, a simple level-up draft, and restart flow.",
       "path": "Samples~/BasicMovementFpsGame"
     }
   ]

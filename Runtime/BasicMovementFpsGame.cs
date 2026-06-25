@@ -1,5 +1,6 @@
 using Deucarian.Combat;
 using Deucarian.RunUpgrades;
+using Deucarian.TemplateGameMovementFps.Run;
 
 namespace Deucarian.TemplateGameMovementFps
 {
@@ -109,10 +110,105 @@ namespace Deucarian.TemplateGameMovementFps
         {
             return new MovementFpsEnemyDefinition(
                 id: "enemy.husk-thrall",
-                maximumHealth: 52d,
-                moveSpeed: 3.8f,
-                contactDamage: 8d,
-                experienceDrop: 12);
+                displayName: "Husk Thrall",
+                maximumHealth: 32d,
+                moveSpeed: 4.4f,
+                contactDamage: 7d,
+                experienceDrop: 1,
+                isMiniBoss: false,
+                visualScale: 1f,
+                contactIntervalSeconds: 0.75f);
+        }
+
+        public static MovementFpsEnemyDefinition CreateLeapingRunnerDefinition()
+        {
+            return new MovementFpsEnemyDefinition(
+                id: "enemy.leaping-runner",
+                displayName: "Leaping Runner",
+                maximumHealth: 20d,
+                moveSpeed: 6.4f,
+                contactDamage: 6d,
+                experienceDrop: 1,
+                isMiniBoss: false,
+                visualScale: 0.82f,
+                contactIntervalSeconds: 0.75f);
+        }
+
+        public static MovementFpsEnemyDefinition CreateBoneBulwarkDefinition()
+        {
+            return new MovementFpsEnemyDefinition(
+                id: "enemy.bone-bulwark",
+                displayName: "Bone Bulwark",
+                maximumHealth: 96d,
+                moveSpeed: 2.7f,
+                contactDamage: 14d,
+                experienceDrop: 4,
+                isMiniBoss: false,
+                visualScale: 1.32f,
+                contactIntervalSeconds: 0.75f);
+        }
+
+        public static MovementFpsEnemyDefinition CreateChoirOgreDefinition()
+        {
+            return new MovementFpsEnemyDefinition(
+                id: "enemy.choir-ogre",
+                displayName: "Choir Ogre",
+                maximumHealth: 850d,
+                moveSpeed: 3.15f,
+                contactDamage: 24d,
+                experienceDrop: 32,
+                isMiniBoss: true,
+                visualScale: 2.2f,
+                contactIntervalSeconds: 0.75f);
+        }
+
+        public static MovementFpsWaveDefinition CreatePrototypeWaveDefinition()
+        {
+            MovementFpsEnemyDefinition husk = CreateEnemyDefinition();
+            MovementFpsEnemyDefinition runner = CreateLeapingRunnerDefinition();
+            MovementFpsEnemyDefinition bulwark = CreateBoneBulwarkDefinition();
+            MovementFpsEnemyDefinition ogre = CreateChoirOgreDefinition();
+
+            return new MovementFpsWaveDefinition(
+                id: "wave.prototype-five-minute",
+                displayName: "Prototype Five-Minute Horde",
+                segments: new[]
+                {
+                    new MovementFpsWaveSegmentDefinition(
+                        startTimeSeconds: 0f,
+                        spawnIntervalSeconds: 1.25f,
+                        batchSize: 2,
+                        maxAlive: 24,
+                        enemies: new[]
+                        {
+                            new MovementFpsWeightedEnemyDefinition(husk, 1f)
+                        }),
+                    new MovementFpsWaveSegmentDefinition(
+                        startTimeSeconds: 75f,
+                        spawnIntervalSeconds: 0.95f,
+                        batchSize: 3,
+                        maxAlive: 34,
+                        enemies: new[]
+                        {
+                            new MovementFpsWeightedEnemyDefinition(husk, 0.75f),
+                            new MovementFpsWeightedEnemyDefinition(runner, 0.25f)
+                        }),
+                    new MovementFpsWaveSegmentDefinition(
+                        startTimeSeconds: 170f,
+                        spawnIntervalSeconds: 0.75f,
+                        batchSize: 4,
+                        maxAlive: 48,
+                        enemies: new[]
+                        {
+                            new MovementFpsWeightedEnemyDefinition(husk, 0.58f),
+                            new MovementFpsWeightedEnemyDefinition(runner, 0.28f),
+                            new MovementFpsWeightedEnemyDefinition(bulwark, 0.14f)
+                        })
+                },
+                miniBossEnemy: ogre,
+                miniBossSpawnTimeSeconds: 270f,
+                victoryTimeSeconds: 300f,
+                escalationPerMinute: 1.16f);
         }
 
         public static MovementFpsPlayerDefinition CreatePlayerDefinition()

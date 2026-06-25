@@ -8,6 +8,7 @@ Starter Unity package for a movement-FPS / wallrunner horde arena template. This
 - Runtime sample controller that builds a simple wallrun arena, player, enemy, XP pickup, and draft loop.
 - Basic hitscan carbine and projectile launcher combat using `com.deucarian.combat`.
 - Autonomous Orbit Pulse, Chain Bolt, and Ground Rift powers with local cooldown/targeting rules.
+- Local horde wave escalation, weighted enemy pressure, miniboss spawn, victory, defeat, and restart flow.
 - XP and three-choice upgrade draft adapter using `com.deucarian.run-upgrades`.
 - `Samples~/BasicMovementFpsGame` with a minimal boot scene.
 - EditMode and PlayMode smoke tests for the first slice.
@@ -20,6 +21,8 @@ Import the `Basic Movement FPS Game` sample, then open:
 
 The scene contains a tiny bootstrap object. At runtime it creates the sample arena, player controller, camera, starter enemy, XP pickup flow, and draft UI.
 
+The default sample run escalates toward a Choir Ogre miniboss at 270 seconds. Killing that miniboss triggers victory; player death enters a defeat state that can restart with R.
+
 ## Local Kit Code
 
 Keep these systems local to this template until a concrete second FPS-style game proves reusable shape:
@@ -30,6 +33,8 @@ Keep these systems local to this template until a concrete second FPS-style game
 - projectile weapon feel
 - recoil/spread/ammo/reload feel
 - autonomous power targeting and cooldown timing
+- horde wave timing and weighted enemy selection
+- miniboss/victory/defeat state
 - movement probes
 - wallrun, slide, double-jump, mantle/vault tuning
 - arena traversal geometry
@@ -47,4 +52,4 @@ It deliberately does not use Deucarian Session for gameplay run state and does n
 
 ## Deferred
 
-Miniboss/victory flow, richer spawn-pocket rules, horde escalation, save/meta progression, full authored ScriptableObject pipelines, and deeper debug tooling are deferred to later Movement-FPS phases.
+Richer spawn-pocket rules, save/meta progression, boss rewards, full authored ScriptableObject pipelines, pooling, and deeper debug tooling are deferred to later Movement-FPS phases.

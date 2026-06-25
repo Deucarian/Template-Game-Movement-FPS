@@ -49,11 +49,101 @@
       "radius": 3
     }
   ],
-  "enemy": {
-    "id": "enemy.husk-thrall",
-    "maximumHealth": 52,
-    "moveSpeed": 3.8,
-    "contactDamage": 8,
-    "experienceDrop": 12
+  "enemies": [
+    {
+      "id": "enemy.husk-thrall",
+      "displayName": "Husk Thrall",
+      "maximumHealth": 32,
+      "moveSpeed": 4.4,
+      "contactDamage": 7,
+      "experienceDrop": 1,
+      "visualScale": 1
+    },
+    {
+      "id": "enemy.leaping-runner",
+      "displayName": "Leaping Runner",
+      "maximumHealth": 20,
+      "moveSpeed": 6.4,
+      "contactDamage": 6,
+      "experienceDrop": 1,
+      "visualScale": 0.82
+    },
+    {
+      "id": "enemy.bone-bulwark",
+      "displayName": "Bone Bulwark",
+      "maximumHealth": 96,
+      "moveSpeed": 2.7,
+      "contactDamage": 14,
+      "experienceDrop": 4,
+      "visualScale": 1.32
+    },
+    {
+      "id": "enemy.choir-ogre",
+      "displayName": "Choir Ogre",
+      "maximumHealth": 850,
+      "moveSpeed": 3.15,
+      "contactDamage": 24,
+      "experienceDrop": 32,
+      "miniBoss": true,
+      "visualScale": 2.2
+    }
+  ],
+  "wave": {
+    "id": "wave.prototype-five-minute",
+    "displayName": "Prototype Five-Minute Horde",
+    "escalationPerMinute": 1.16,
+    "miniBossEnemy": "enemy.choir-ogre",
+    "miniBossSpawnTimeSeconds": 270,
+    "victoryTimeSeconds": 300,
+    "segments": [
+      {
+        "startTimeSeconds": 0,
+        "spawnIntervalSeconds": 1.25,
+        "batchSize": 2,
+        "maxAlive": 24,
+        "enemies": [
+          {
+            "enemy": "enemy.husk-thrall",
+            "weight": 1
+          }
+        ]
+      },
+      {
+        "startTimeSeconds": 75,
+        "spawnIntervalSeconds": 0.95,
+        "batchSize": 3,
+        "maxAlive": 34,
+        "enemies": [
+          {
+            "enemy": "enemy.husk-thrall",
+            "weight": 0.75
+          },
+          {
+            "enemy": "enemy.leaping-runner",
+            "weight": 0.25
+          }
+        ]
+      },
+      {
+        "startTimeSeconds": 170,
+        "spawnIntervalSeconds": 0.75,
+        "batchSize": 4,
+        "maxAlive": 48,
+        "enemies": [
+          {
+            "enemy": "enemy.husk-thrall",
+            "weight": 0.58
+          },
+          {
+            "enemy": "enemy.leaping-runner",
+            "weight": 0.28
+          },
+          {
+            "enemy": "enemy.bone-bulwark",
+            "weight": 0.14
+          }
+        ]
+      }
+    ]
   }
 }

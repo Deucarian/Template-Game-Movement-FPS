@@ -15,3 +15,5 @@ Controls:
 - 1/2/3: choose level-up draft options
 
 The sample builds its arena at runtime. Its authored content files are intentionally small markers for the sample's default loadout and tuning; the first slice still uses local runtime defaults to preserve parity and avoid premature package extraction.
+
+The sample run now includes local wave escalation, weighted horde enemies, and a Choir Ogre miniboss. Defeat and victory both restart with R. Spawn timing and miniboss state remain Movement-FPS template-kit code, not shared packages.

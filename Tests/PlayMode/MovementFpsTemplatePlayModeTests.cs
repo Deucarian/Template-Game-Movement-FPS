@@ -3,6 +3,7 @@ using System.Reflection;
 using Deucarian.TemplateGameMovementFps.Actors;
 using Deucarian.TemplateGameMovementFps.Combat;
 using Deucarian.TemplateGameMovementFps.Movement;
+using Deucarian.TemplateGameMovementFps.Run;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -123,13 +124,18 @@ namespace Deucarian.TemplateGameMovementFps.PlayModeTests
             MovementFpsTemplateController controller = CreateController();
             yield return null;
 
-            MovementFpsEnemyActor enemy = controller.SpawnEnemyForTest(controller.Player.transform.position + Vector3.forward * 5f);
+            MovementFpsEnemyDefinition bulwark = controller.GetEnemyDefinitionForTest("enemy.bone-bulwark");
+            MovementFpsEnemyActor enemy = controller.SpawnEnemyForTest(bulwark, controller.Player.transform.position + Vector3.forward * 5f);
             MovementFpsProjectileActor first = controller.FireProjectileAtEnemyForTest(enemy);
             Assert.IsNotNull(first);
             yield return new WaitForSeconds(0.25f);
 
             MovementFpsProjectileActor second = controller.FireProjectileAtEnemyForTest(enemy);
             Assert.IsNotNull(second);
+            yield return new WaitForSeconds(0.25f);
+
+            MovementFpsProjectileActor third = controller.FireProjectileAtEnemyForTest(enemy);
+            Assert.IsNotNull(third);
             yield return new WaitForSeconds(0.25f);
 
             Assert.IsFalse(enemy != null && enemy.IsAlive);
@@ -241,6 +247,57 @@ namespace Deucarian.TemplateGameMovementFps.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator HordeEscalationSpawnsPressureEnemies()
+        {
+            MovementFpsTemplateController controller = CreateController();
+            yield return null;
+
+            int startingEnemies = controller.EnemyCount;
+            controller.TickRunForTest(76f);
+            yield return null;
+
+            Assert.That(controller.RunElapsedSeconds, Is.GreaterThanOrEqualTo(76f));
+            Assert.That(controller.CurrentSpawnSnapshot.BatchSize, Is.GreaterThanOrEqualTo(3));
+            Assert.That(controller.CurrentSpawnSnapshot.MaxAlive, Is.GreaterThanOrEqualTo(34));
+            Assert.That(controller.EnemyCount, Is.GreaterThan(startingEnemies));
+
+            Object.Destroy(controller.gameObject);
+        }
+
+        [UnityTest]
+        public IEnumerator MinibossSpawnsAndDeathTriggersVictory()
+        {
+            MovementFpsTemplateController controller = CreateController();
+            yield return null;
+
+            controller.TickRunForTest(270.1f);
+            yield return null;
+
+            MovementFpsEnemyActor miniboss = null;
+            for (int index = 0; index < controller.Enemies.Count; index++)
+            {
+                if (controller.Enemies[index] != null && controller.Enemies[index].IsMiniBoss)
+                {
+                    miniboss = controller.Enemies[index];
+                    break;
+                }
+            }
+
+            Assert.IsTrue(controller.MiniBossSpawned);
+            Assert.IsNotNull(miniboss);
+            Assert.IsFalse(controller.Victory);
+
+            controller.KillEnemyForTest(miniboss);
+            yield return null;
+
+            Assert.IsTrue(controller.MiniBossDefeated);
+            Assert.IsTrue(controller.Victory);
+            Assert.AreEqual(MovementFpsRunState.Victory, controller.RunState);
+
+            Object.Destroy(controller.gameObject);
+        }
+
+        [UnityTest]
         public IEnumerator PlayerCanDieAndRestart()
         {
             MovementFpsTemplateController controller = CreateController();
@@ -254,6 +311,8 @@ namespace Deucarian.TemplateGameMovementFps.PlayModeTests
             yield return null;
 
             Assert.IsFalse(controller.Defeated);
+            Assert.IsFalse(controller.Victory);
+            Assert.AreEqual(MovementFpsRunState.Running, controller.RunState);
             Assert.That(controller.Player.CurrentHealth, Is.GreaterThan(0d));
             Assert.That(controller.EnemyCount, Is.GreaterThanOrEqualTo(1));
 

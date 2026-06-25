@@ -5,6 +5,7 @@ using Deucarian.TemplateGameMovementFps.Actors;
 using Deucarian.TemplateGameMovementFps.Combat;
 using Deucarian.TemplateGameMovementFps.Movement;
 using Deucarian.TemplateGameMovementFps.Progression;
+using Deucarian.TemplateGameMovementFps.Run;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -15,11 +16,23 @@ namespace Deucarian.TemplateGameMovementFps
         [SerializeField]
         private bool buildSampleArenaOnAwake = true;
 
-        [SerializeField, Min(1f)]
-        private float enemySpawnIntervalSeconds = 4f;
+        [SerializeField]
+        private bool enemySpawningEnabled = true;
 
-        [SerializeField, Min(1)]
-        private int maximumEnemiesAlive = 6;
+        [SerializeField, Min(0.05f)]
+        private float spawnIntervalMultiplier = 1f;
+
+        [SerializeField, Min(0.1f)]
+        private float spawnBatchMultiplier = 1f;
+
+        [SerializeField, Min(0f)]
+        private float escalationMultiplier = 1f;
+
+        [SerializeField, Min(0)]
+        private int maxAliveOverride;
+
+        [SerializeField]
+        private bool miniBossSpawningEnabled = true;
 
         private readonly List<MovementFpsEnemyActor> _enemies = new List<MovementFpsEnemyActor>();
         private Transform _runtimeRoot;
@@ -28,21 +41,36 @@ namespace Deucarian.TemplateGameMovementFps
         private MovementFpsRunProgression _progression;
         private MovementFpsPlayerDefinition _playerDefinition;
         private MovementFpsEnemyDefinition _enemyDefinition;
+        private MovementFpsEnemyDefinition _leapingRunnerDefinition;
+        private MovementFpsEnemyDefinition _boneBulwarkDefinition;
+        private MovementFpsEnemyDefinition _choirOgreDefinition;
+        private MovementFpsWaveDefinition _waveDefinition;
+        private MovementFpsWaveDirector _waveDirector;
         private MovementFpsGunDefinition _carbineDefinition;
         private MovementFpsGunDefinition _riftLauncherDefinition;
         private MovementFpsAutoPowerDefinition _orbitPulseDefinition;
         private MovementFpsAutoPowerDefinition _chainBoltDefinition;
         private MovementFpsAutoPowerDefinition _groundRiftDefinition;
-        private float _spawnTimer;
+        private float _elapsedSeconds;
         private bool _draftOpen;
         private bool _defeat;
+        private bool _victory;
+        private bool _miniBossDefeated;
+        private MovementFpsRunState _runState;
 
         public MovementFpsPlayerController Player => _player;
         public CombatCatalog CombatCatalog => _combatCatalog;
         public MovementFpsRunProgression Progression => _progression;
-        public bool IsGameplayPaused => _draftOpen || _defeat;
+        public bool IsGameplayPaused => _draftOpen || _defeat || _victory;
         public bool DraftOpen => _draftOpen;
         public bool Defeated => _defeat;
+        public bool Victory => _victory;
+        public bool MiniBossSpawned => _waveDirector != null && _waveDirector.MiniBossSpawned;
+        public bool MiniBossDefeated => _miniBossDefeated;
+        public MovementFpsRunState RunState => _runState;
+        public float RunElapsedSeconds => _elapsedSeconds;
+        public MovementFpsWaveSpawnSnapshot CurrentSpawnSnapshot => _waveDirector == null ? default : _waveDirector.CurrentSnapshot;
+        public IReadOnlyList<MovementFpsEnemyActor> Enemies => _enemies;
         public int EnemyCount => _enemies.Count;
         public float PlayerPickupRadius => _playerDefinition.PickupRadius + (float)(_progression == null ? 0d : _progression.PickupRadiusBonus);
 
@@ -53,7 +81,7 @@ namespace Deucarian.TemplateGameMovementFps
 
         private void Update()
         {
-            if (_defeat)
+            if (_defeat || _victory)
             {
                 if (WasPressed(Key.R))
                 {
@@ -81,12 +109,14 @@ namespace Deucarian.TemplateGameMovementFps
                 return;
             }
 
-            _spawnTimer -= Time.deltaTime;
-            if (_spawnTimer <= 0f && _enemies.Count < maximumEnemiesAlive)
+            float deltaTime = Time.deltaTime;
+            _elapsedSeconds += deltaTime;
+            if (enemySpawningEnabled)
             {
-                _spawnTimer = enemySpawnIntervalSeconds;
-                SpawnEnemy();
+                TickWaveDirector(deltaTime);
             }
+
+            TryCompleteSurvivalVictory();
         }
 
         public void EnsureBootstrapped()
@@ -100,6 +130,10 @@ namespace Deucarian.TemplateGameMovementFps
             _progression = new MovementFpsRunProgression(BasicMovementFpsGame.CreateUpgradeCatalog());
             _playerDefinition = BasicMovementFpsGame.CreatePlayerDefinition();
             _enemyDefinition = BasicMovementFpsGame.CreateEnemyDefinition();
+            _leapingRunnerDefinition = BasicMovementFpsGame.CreateLeapingRunnerDefinition();
+            _boneBulwarkDefinition = BasicMovementFpsGame.CreateBoneBulwarkDefinition();
+            _choirOgreDefinition = BasicMovementFpsGame.CreateChoirOgreDefinition();
+            _waveDefinition = BasicMovementFpsGame.CreatePrototypeWaveDefinition();
             _carbineDefinition = BasicMovementFpsGame.CreateCarbineDefinition();
             _riftLauncherDefinition = BasicMovementFpsGame.CreateRiftLauncherDefinition();
             _orbitPulseDefinition = BasicMovementFpsGame.CreateOrbitPulseDefinition();
@@ -126,7 +160,12 @@ namespace Deucarian.TemplateGameMovementFps
             _progression.Reset();
             _draftOpen = false;
             _defeat = false;
-            _spawnTimer = 0.25f;
+            _victory = false;
+            _miniBossDefeated = false;
+            _runState = MovementFpsRunState.Running;
+            _elapsedSeconds = 0f;
+            _waveDirector = new MovementFpsWaveDirector(_waveDefinition, Random.Range(int.MinValue, int.MaxValue));
+            ApplyWaveTuning();
             _player.ResetPlayer(new Vector3(0f, 1.2f, -8f), Quaternion.identity);
             SpawnEnemy(new Vector3(0f, 1f, 8f));
         }
@@ -138,28 +177,30 @@ namespace Deucarian.TemplateGameMovementFps
 
         public MovementFpsEnemyActor SpawnEnemy()
         {
-            Vector2 circle = Random.insideUnitCircle.normalized;
-            if (circle.sqrMagnitude <= 0.01f)
+            if (!TryPickSpawnPosition(out Vector3 position))
             {
-                circle = Vector2.up;
+                position = _player == null ? Vector3.forward * 13f : _player.transform.position + _player.transform.forward * 13f;
+                position.y = 1f;
             }
 
-            Vector3 origin = _player == null ? Vector3.zero : _player.transform.position;
-            Vector3 position = origin + new Vector3(circle.x, 0f, circle.y) * 13f;
-            position.y = 1f;
             return SpawnEnemy(position);
         }
 
         public MovementFpsEnemyActor SpawnEnemy(Vector3 position)
         {
+            return SpawnEnemy(_enemyDefinition, position);
+        }
+
+        public MovementFpsEnemyActor SpawnEnemy(MovementFpsEnemyDefinition definition, Vector3 position)
+        {
             EnsureBootstrapped();
             GameObject enemyObject = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-            enemyObject.name = "Movement FPS Enemy";
+            enemyObject.name = string.IsNullOrWhiteSpace(definition.DisplayName) ? "Movement FPS Enemy" : definition.DisplayName;
             enemyObject.transform.SetParent(_runtimeRoot, false);
             enemyObject.transform.position = position;
-            enemyObject.transform.localScale = new Vector3(1f, 1.15f, 1f);
+            enemyObject.transform.localScale = new Vector3(1f, 1.15f, 1f) * definition.VisualScale;
             MovementFpsEnemyActor enemy = enemyObject.AddComponent<MovementFpsEnemyActor>();
-            enemy.Initialize(_enemyDefinition, this);
+            enemy.Initialize(definition, this);
             _enemies.Add(enemy);
             return enemy;
         }
@@ -205,6 +246,12 @@ namespace Deucarian.TemplateGameMovementFps
 
             _enemies.Remove(enemy);
             SpawnExperiencePickup(enemy.transform.position + Vector3.up * 0.4f, enemy.ExperienceDrop);
+            if (enemy.IsMiniBoss)
+            {
+                _miniBossDefeated = true;
+                CompleteVictory();
+            }
+
             Destroy(enemy.gameObject);
         }
 
@@ -272,14 +319,26 @@ namespace Deucarian.TemplateGameMovementFps
 
         public void HandlePlayerDefeated()
         {
+            if (_victory)
+            {
+                return;
+            }
+
             _defeat = true;
             _draftOpen = false;
+            _runState = MovementFpsRunState.Defeated;
         }
 
         public void CollectExperience(int amount)
         {
+            if (_defeat || _victory)
+            {
+                return;
+            }
+
             _progression.GainExperience(amount);
             _draftOpen = _progression.HasDraft;
+            _runState = _draftOpen ? MovementFpsRunState.Draft : MovementFpsRunState.Running;
         }
 
         public RunUpgradeSelectionResult ChooseDraft(int index)
@@ -291,12 +350,72 @@ namespace Deucarian.TemplateGameMovementFps
             }
 
             _draftOpen = _progression.HasDraft;
+            _runState = _draftOpen ? MovementFpsRunState.Draft : MovementFpsRunState.Running;
             return result;
         }
 
         public MovementFpsEnemyActor SpawnEnemyForTest(Vector3 position)
         {
             return SpawnEnemy(position);
+        }
+
+        public MovementFpsEnemyActor SpawnEnemyForTest(MovementFpsEnemyDefinition definition, Vector3 position)
+        {
+            return SpawnEnemy(definition, position);
+        }
+
+        public MovementFpsEnemyActor SpawnMiniBossForTest(Vector3 position)
+        {
+            return SpawnEnemy(_choirOgreDefinition, position);
+        }
+
+        public MovementFpsEnemyDefinition GetEnemyDefinitionForTest(string id)
+        {
+            if (_enemyDefinition.Id == id)
+            {
+                return _enemyDefinition;
+            }
+
+            if (_leapingRunnerDefinition.Id == id)
+            {
+                return _leapingRunnerDefinition;
+            }
+
+            if (_boneBulwarkDefinition.Id == id)
+            {
+                return _boneBulwarkDefinition;
+            }
+
+            if (_choirOgreDefinition.Id == id)
+            {
+                return _choirOgreDefinition;
+            }
+
+            return default;
+        }
+
+        public void TickRunForTest(float deltaTime)
+        {
+            if (_defeat || _victory || _draftOpen)
+            {
+                return;
+            }
+
+            _elapsedSeconds += Mathf.Max(0f, deltaTime);
+            if (enemySpawningEnabled)
+            {
+                TickWaveDirector(deltaTime);
+            }
+
+            TryCompleteSurvivalVictory();
+        }
+
+        public void KillEnemyForTest(MovementFpsEnemyActor enemy)
+        {
+            if (enemy != null)
+            {
+                enemy.ApplyDamage(99999d, new CombatantId("combatant.test"), BasicMovementFpsGame.KineticDamageType);
+            }
         }
 
         public Deucarian.Combat.DamageResult FireAtEnemyForTest(MovementFpsEnemyActor enemy)
@@ -344,6 +463,88 @@ namespace Deucarian.TemplateGameMovementFps
         public void RestartRunForTest()
         {
             RestartRun();
+        }
+
+        private void ApplyWaveTuning()
+        {
+            if (_waveDirector == null)
+            {
+                return;
+            }
+
+            _waveDirector.SpawnIntervalMultiplier = spawnIntervalMultiplier;
+            _waveDirector.SpawnBatchMultiplier = spawnBatchMultiplier;
+            _waveDirector.EscalationMultiplier = escalationMultiplier;
+            _waveDirector.MaxAliveOverride = maxAliveOverride;
+            _waveDirector.MiniBossSpawningEnabled = miniBossSpawningEnabled;
+        }
+
+        private void TickWaveDirector(float deltaTime)
+        {
+            if (_waveDirector == null)
+            {
+                return;
+            }
+
+            _waveDirector.Tick(deltaTime, _elapsedSeconds, _enemies.Count, SpawnEnemyFromWave);
+        }
+
+        private bool SpawnEnemyFromWave(MovementFpsEnemyDefinition definition)
+        {
+            if (TryPickSpawnPosition(out Vector3 position))
+            {
+                SpawnEnemy(definition, position);
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool TryPickSpawnPosition(out Vector3 position)
+        {
+            Vector3 origin = _player == null ? Vector3.zero : _player.transform.position;
+            for (int attempt = 0; attempt < 10; attempt++)
+            {
+                Vector2 circle = Random.insideUnitCircle;
+                if (circle.sqrMagnitude <= 0.01f)
+                {
+                    circle = Vector2.up;
+                }
+
+                circle.Normalize();
+                float radius = Random.Range(13f, 18f);
+                position = origin + new Vector3(circle.x, 0f, circle.y) * radius;
+                position.y = 1f;
+                if (_player == null || !Physics.Linecast(origin + Vector3.up * 1.4f, position + Vector3.up * 1.2f))
+                {
+                    return true;
+                }
+            }
+
+            position = origin + Vector3.forward * 15f;
+            position.y = 1f;
+            return true;
+        }
+
+        private void TryCompleteSurvivalVictory()
+        {
+            if (_victory || _defeat || _waveDefinition == null || _waveDefinition.HasMiniBoss)
+            {
+                return;
+            }
+
+            if (_elapsedSeconds >= _waveDefinition.VictoryTimeSeconds)
+            {
+                CompleteVictory();
+            }
+        }
+
+        private void CompleteVictory()
+        {
+            _victory = true;
+            _defeat = false;
+            _draftOpen = false;
+            _runState = MovementFpsRunState.Victory;
         }
 
         private void CreatePlayer()
@@ -466,6 +667,7 @@ namespace Deucarian.TemplateGameMovementFps
             GUILayout.BeginArea(new Rect(16f, 16f, 520f, 280f));
             GUILayout.Label("Movement FPS Template");
             GUILayout.Label($"HP {_player.CurrentHealth:0}/{_player.MaximumHealth:0}  Level {_progression.Level}  XP {_progression.CurrentExperience}/{_progression.RequiredExperience}");
+            GUILayout.Label($"Run {_elapsedSeconds:0}s  State {_runState}  Enemies {_enemies.Count}/{CurrentSpawnSnapshot.MaxAlive}");
             GUILayout.Label($"State {_player.Motor.State}  Speed {Vector3.ProjectOnPlane(_player.Motor.Velocity, Vector3.up).magnitude:0.0}");
             if (_player.CurrentGun != null)
             {
@@ -484,6 +686,10 @@ namespace Deucarian.TemplateGameMovementFps
             else if (_defeat)
             {
                 GUILayout.Label("Defeated - press R to restart");
+            }
+            else if (_victory)
+            {
+                GUILayout.Label("Victory - press R to restart");
             }
             else
             {

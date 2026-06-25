@@ -130,19 +130,41 @@ namespace Deucarian.TemplateGameMovementFps
     public readonly struct MovementFpsEnemyDefinition
     {
         public MovementFpsEnemyDefinition(string id, double maximumHealth, float moveSpeed, double contactDamage, int experienceDrop)
+            : this(id, id, maximumHealth, moveSpeed, contactDamage, experienceDrop, isMiniBoss: false, visualScale: 1f, contactIntervalSeconds: 0.75f)
+        {
+        }
+
+        public MovementFpsEnemyDefinition(
+            string id,
+            string displayName,
+            double maximumHealth,
+            float moveSpeed,
+            double contactDamage,
+            int experienceDrop,
+            bool isMiniBoss,
+            float visualScale,
+            float contactIntervalSeconds)
         {
             Id = string.IsNullOrWhiteSpace(id) ? throw new ArgumentException("Enemy id is required.", nameof(id)) : id.Trim();
+            DisplayName = string.IsNullOrWhiteSpace(displayName) ? Id : displayName.Trim();
             MaximumHealth = Math.Max(1d, maximumHealth);
             MoveSpeed = Math.Max(0f, moveSpeed);
             ContactDamage = Math.Max(0d, contactDamage);
             ExperienceDrop = Math.Max(0, experienceDrop);
+            IsMiniBoss = isMiniBoss;
+            VisualScale = Math.Max(0.25f, visualScale);
+            ContactIntervalSeconds = Math.Max(0.1f, contactIntervalSeconds);
         }
 
         public string Id { get; }
+        public string DisplayName { get; }
         public double MaximumHealth { get; }
         public float MoveSpeed { get; }
         public double ContactDamage { get; }
         public int ExperienceDrop { get; }
+        public bool IsMiniBoss { get; }
+        public float VisualScale { get; }
+        public float ContactIntervalSeconds { get; }
     }
 
     public readonly struct MovementFpsPlayerDefinition

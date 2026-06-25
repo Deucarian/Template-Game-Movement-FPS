@@ -1,6 +1,6 @@
 # Movement FPS Validation
 
-Phase 2V and 2W validation targets:
+Phase 2V through 2X validation targets:
 
 - Unity package import/compile
 - EditMode tests for content defaults and XP/draft adapter logic
@@ -15,6 +15,9 @@ Phase 2V and 2W validation targets:
 - PlayMode Chain Bolt damage
 - PlayMode Ground Rift damage
 - PlayMode XP pickup/level-up draft
+- PlayMode horde escalation
+- PlayMode miniboss spawn
+- PlayMode miniboss death and victory trigger
 - PlayMode restart after defeat
 
 Fresh publishing and Package Registry validation are intentionally out of scope for Phase 2V. This template must not be published or registered until a later publish-readiness gate.
@@ -32,6 +35,9 @@ Open the sample scene and verify:
 - enemy dies from carbine hits
 - Rift Launcher unlock/sample data exists and projectile shots damage enemies
 - Orbit Pulse, Chain Bolt, and Ground Rift powers damage enemies through local cooldown logic
+- horde pressure increases over time
+- the Choir Ogre miniboss can spawn and trigger victory when killed
 - XP pickup opens draft after collection
 - 1/2/3 applies a draft choice
 - defeat can restart with R
+- victory can restart with R

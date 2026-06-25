@@ -2,6 +2,7 @@ using System.IO;
 using Deucarian.Combat;
 using Deucarian.RunUpgrades;
 using Deucarian.TemplateGameMovementFps.Progression;
+using Deucarian.TemplateGameMovementFps.Run;
 using NUnit.Framework;
 using UnityEditor.PackageManager;
 
@@ -18,6 +19,10 @@ namespace Deucarian.TemplateGameMovementFps.Tests
             MovementFpsAutoPowerDefinition chain = BasicMovementFpsGame.CreateChainBoltDefinition();
             MovementFpsAutoPowerDefinition rift = BasicMovementFpsGame.CreateGroundRiftDefinition();
             MovementFpsEnemyDefinition enemy = BasicMovementFpsGame.CreateEnemyDefinition();
+            MovementFpsEnemyDefinition runner = BasicMovementFpsGame.CreateLeapingRunnerDefinition();
+            MovementFpsEnemyDefinition bulwark = BasicMovementFpsGame.CreateBoneBulwarkDefinition();
+            MovementFpsEnemyDefinition miniBoss = BasicMovementFpsGame.CreateChoirOgreDefinition();
+            MovementFpsWaveDefinition wave = BasicMovementFpsGame.CreatePrototypeWaveDefinition();
             MovementFpsPlayerDefinition player = BasicMovementFpsGame.CreatePlayerDefinition();
             RunUpgradeCatalog upgrades = BasicMovementFpsGame.CreateUpgradeCatalog();
             CombatCatalog combat = BasicMovementFpsGame.CreateCombatCatalog();
@@ -37,8 +42,18 @@ namespace Deucarian.TemplateGameMovementFps.Tests
             Assert.AreEqual(3, chain.TargetCount);
             Assert.AreEqual("power.ground-rift", rift.Id);
             Assert.AreEqual("enemy.husk-thrall", enemy.Id);
-            Assert.AreEqual(52d, enemy.MaximumHealth);
-            Assert.AreEqual(12, enemy.ExperienceDrop);
+            Assert.AreEqual(32d, enemy.MaximumHealth);
+            Assert.AreEqual(1, enemy.ExperienceDrop);
+            Assert.AreEqual("enemy.leaping-runner", runner.Id);
+            Assert.AreEqual(6.4f, runner.MoveSpeed);
+            Assert.AreEqual("enemy.bone-bulwark", bulwark.Id);
+            Assert.AreEqual(96d, bulwark.MaximumHealth);
+            Assert.AreEqual("enemy.choir-ogre", miniBoss.Id);
+            Assert.IsTrue(miniBoss.IsMiniBoss);
+            Assert.AreEqual("wave.prototype-five-minute", wave.Id);
+            Assert.AreEqual(3, wave.Segments.Count);
+            Assert.AreEqual(270f, wave.MiniBossSpawnTimeSeconds);
+            Assert.AreEqual(300f, wave.VictoryTimeSeconds);
             Assert.AreEqual(100d, player.MaximumHealth);
             Assert.AreEqual(4.2f, player.PickupRadius);
             Assert.AreEqual(8, upgrades.Definitions.Count);
@@ -98,6 +113,41 @@ namespace Deucarian.TemplateGameMovementFps.Tests
         }
 
         [Test]
+        public void WaveEscalationResolvesLaterSegmentsAndPressure()
+        {
+            MovementFpsWaveDefinition wave = BasicMovementFpsGame.CreatePrototypeWaveDefinition();
+
+            MovementFpsWaveSpawnSnapshot start = wave.ResolveSpawnSnapshot(0f, 1f);
+            MovementFpsWaveSpawnSnapshot mid = wave.ResolveSpawnSnapshot(80f, 1f);
+            MovementFpsWaveSpawnSnapshot late = wave.ResolveSpawnSnapshot(190f, 1f);
+
+            Assert.AreEqual(1.25f, start.SpawnIntervalSeconds, 0.001f);
+            Assert.AreEqual(2, start.BatchSize);
+            Assert.AreEqual(24, start.MaxAlive);
+            Assert.That(mid.SpawnIntervalSeconds, Is.LessThan(0.95f));
+            Assert.That(mid.BatchSize, Is.GreaterThanOrEqualTo(3));
+            Assert.That(late.SpawnIntervalSeconds, Is.LessThan(0.75f));
+            Assert.That(late.MaxAlive, Is.GreaterThan(48));
+        }
+
+        [Test]
+        public void WaveDirectorAppliesRuntimeTuning()
+        {
+            var director = new MovementFpsWaveDirector(BasicMovementFpsGame.CreatePrototypeWaveDefinition(), seed: 123)
+            {
+                SpawnIntervalMultiplier = 2f,
+                SpawnBatchMultiplier = 0.5f,
+                MaxAliveOverride = 9
+            };
+
+            MovementFpsWaveSpawnSnapshot snapshot = director.ResolveRuntimeSnapshot(190f);
+
+            Assert.That(snapshot.SpawnIntervalSeconds, Is.GreaterThan(0.75f));
+            Assert.AreEqual(3, snapshot.BatchSize);
+            Assert.AreEqual(9, snapshot.MaxAlive);
+        }
+
+        [Test]
         public void SampleLoadoutJsonIsPresent()
         {
             var packageInfo = PackageInfo.FindForAssembly(typeof(BasicMovementFpsGame).Assembly);
@@ -113,6 +163,10 @@ namespace Deucarian.TemplateGameMovementFps.Tests
             StringAssert.Contains("power.chain-bolt", json);
             StringAssert.Contains("power.ground-rift", json);
             StringAssert.Contains("enemy.husk-thrall", json);
+            StringAssert.Contains("enemy.leaping-runner", json);
+            StringAssert.Contains("enemy.bone-bulwark", json);
+            StringAssert.Contains("enemy.choir-ogre", json);
+            StringAssert.Contains("wave.prototype-five-minute", json);
         }
     }
 }
