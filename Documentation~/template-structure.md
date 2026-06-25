@@ -17,9 +17,17 @@ Local sample actors:
 - enemy actor
 - XP pickup actor
 
+`Runtime/Combat`
+
+Local combat-feel adapters:
+
+- reloadable gun runtime state
+- autonomous power runtime state
+- sphere-cast projectile actor
+
 `Runtime/Progression`
 
-Local adapter for XP, draft state, and applying run-upgrade effects.
+Local adapter for XP, draft state, and applying run-upgrade effects including projectile speed and autonomous power damage modifiers.
 
 `Runtime/Bootstrap`
 
@@ -48,6 +56,8 @@ Existing Deucarian packages used in this phase:
 - Gameplay Foundation: stable IDs and deterministic primitive types surfaced by Combat and Run Upgrades
 - Combat: health and damage
 - Run Upgrades: draft definitions, stable IDs, weighted selection, ranks
+
+No package extraction happened in Phase 2W. Projectile launcher feel, ammo/reload timing, power cooldowns, power target selection, and power placement rules remain local Movement-FPS kit code.
 
 Not used in this phase:
 

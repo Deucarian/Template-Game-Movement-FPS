@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using Deucarian.Combat;
+using Deucarian.TemplateGameMovementFps.Combat;
 using Deucarian.TemplateGameMovementFps.Movement;
 using UnityEngine;
 
@@ -54,15 +56,18 @@ namespace Deucarian.TemplateGameMovementFps.Actors
         private float cameraFeelFollowSpeed = 12f;
 
         private readonly FpsInputReader _input = new FpsInputReader();
+        private readonly List<MovementFpsGunRuntimeState> _guns = new List<MovementFpsGunRuntimeState>();
+        private readonly List<MovementFpsAutoPowerRuntimeState> _autoPowers = new List<MovementFpsAutoPowerRuntimeState>();
+        private readonly List<MovementFpsGunDefinition> _startingGuns = new List<MovementFpsGunDefinition>();
+        private readonly List<MovementFpsAutoPowerDefinition> _startingPowers = new List<MovementFpsAutoPowerDefinition>();
         private MovementFpsTemplateController _session;
         private MovementFpsPlayerDefinition _playerDefinition;
-        private MovementFpsGunDefinition _gun;
         private WallrunnerMotor _motor;
         private HealthState _health;
         private Vector3 _cameraStandLocalPosition;
         private float _pitch;
         private float _cameraRoll;
-        private float _fireCooldown;
+        private int _currentGunIndex;
         private bool _initialized;
 
         public WallrunnerMotor Motor => _motor;
@@ -71,13 +76,23 @@ namespace Deucarian.TemplateGameMovementFps.Actors
         public double MaximumHealth => _health == null ? 0d : _health.MaximumHealth;
         public bool IsAlive => _health != null && _health.IsAlive;
         public float PickupRadius => _session == null ? 4.2f : _session.PlayerPickupRadius;
-        public double GunDamage => _gun.Damage + (_session == null ? 0d : _session.Progression.GunDamageBonus);
+        public IReadOnlyList<MovementFpsGunRuntimeState> Guns => _guns;
+        public IReadOnlyList<MovementFpsAutoPowerRuntimeState> AutoPowers => _autoPowers;
+        public MovementFpsGunRuntimeState CurrentGun => _guns.Count == 0 ? null : _guns[Mathf.Clamp(_currentGunIndex, 0, _guns.Count - 1)];
+        public double GunDamage => CurrentGun == null ? 0d : ResolveGunDamage(CurrentGun.Definition);
 
-        public void Initialize(MovementFpsTemplateController session, MovementFpsPlayerDefinition playerDefinition, MovementFpsGunDefinition gunDefinition)
+        public void Initialize(
+            MovementFpsTemplateController session,
+            MovementFpsPlayerDefinition playerDefinition,
+            IReadOnlyList<MovementFpsGunDefinition> startingGuns,
+            IReadOnlyList<MovementFpsAutoPowerDefinition> startingPowers)
         {
             _session = session;
             _playerDefinition = playerDefinition;
-            _gun = gunDefinition;
+            _startingGuns.Clear();
+            _startingPowers.Clear();
+            CopyStartingContent(startingGuns, _startingGuns);
+            CopyStartingContent(startingPowers, _startingPowers);
             _motor = GetComponent<WallrunnerMotor>();
             if (viewCamera == null)
             {
@@ -107,7 +122,8 @@ namespace Deucarian.TemplateGameMovementFps.Actors
             transform.SetPositionAndRotation(position, rotation);
             _pitch = 0f;
             _cameraRoll = 0f;
-            _fireCooldown = 0f;
+            _currentGunIndex = 0;
+            ResetLoadout();
             _health = new HealthState(new CombatantId("combatant.player"), _playerDefinition.MaximumHealth, _playerDefinition.MaximumHealth);
             _motor.ResetMotor(position);
             if (viewCamera != null)
@@ -138,7 +154,8 @@ namespace Deucarian.TemplateGameMovementFps.Actors
             _input.Read();
             TickLook(_input.Look);
             TickMovement(_input.Move, _input.SprintHeld, _input.SlidePressed, _input.SlideHeld, _input.JumpPressed, _input.JumpHeld, Time.deltaTime);
-            TickGun(_input.FireHeld, Time.deltaTime);
+            TickGun(_input.FireHeld, _input.ReloadPressed, _input.NextGunPressed, Time.deltaTime);
+            TickAutoPowers(Time.deltaTime);
             TickCameraPosture(Time.deltaTime);
         }
 
@@ -158,7 +175,86 @@ namespace Deucarian.TemplateGameMovementFps.Actors
                 return null;
             }
 
-            return enemy.ApplyDamage(GunDamage, new CombatantId("combatant.player"));
+            MovementFpsGunRuntimeState gun = CurrentGun;
+            DamageTypeId damageType = gun == null ? BasicMovementFpsGame.KineticDamageType : gun.Definition.DamageType;
+            return enemy.ApplyDamage(GunDamage, new CombatantId("combatant.player"), damageType);
+        }
+
+        public MovementFpsProjectileActor FireProjectileAtForTest(MovementFpsEnemyActor enemy)
+        {
+            if (enemy == null)
+            {
+                return null;
+            }
+
+            MovementFpsGunRuntimeState projectileGun = FindGun(MovementFpsGunKind.Projectile);
+            if (projectileGun == null)
+            {
+                return null;
+            }
+
+            Vector3 origin = muzzle == null ? transform.position + Vector3.up * 1.45f : muzzle.position;
+            Vector3 target = enemy.transform.position + Vector3.up * 0.4f;
+            Vector3 direction = target - origin;
+            if (direction.sqrMagnitude <= 0.0001f)
+            {
+                direction = transform.forward;
+            }
+
+            return FireProjectile(projectileGun.Definition, origin, direction.normalized);
+        }
+
+        public bool AddGun(MovementFpsGunDefinition definition)
+        {
+            if (string.IsNullOrWhiteSpace(definition.Id) || HasGun(definition.Id))
+            {
+                return false;
+            }
+
+            _guns.Add(new MovementFpsGunRuntimeState(definition));
+            return true;
+        }
+
+        public bool AddAutoPower(MovementFpsAutoPowerDefinition definition)
+        {
+            if (string.IsNullOrWhiteSpace(definition.Id) || HasAutoPower(definition.Id))
+            {
+                return false;
+            }
+
+            _autoPowers.Add(new MovementFpsAutoPowerRuntimeState(definition));
+            return true;
+        }
+
+        public bool HasGun(string id)
+        {
+            for (int index = 0; index < _guns.Count; index++)
+            {
+                if (_guns[index].Definition.Id == id)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public bool HasAutoPower(string id)
+        {
+            for (int index = 0; index < _autoPowers.Count; index++)
+            {
+                if (_autoPowers[index].Definition.Id == id)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public void TickAutoPowersForTest(float deltaTime)
+        {
+            TickAutoPowers(deltaTime);
         }
 
         public void ApplyDamage(double amount)
@@ -179,6 +275,21 @@ namespace Deucarian.TemplateGameMovementFps.Actors
             }
         }
 
+        private void ResetLoadout()
+        {
+            _guns.Clear();
+            _autoPowers.Clear();
+            for (int index = 0; index < _startingGuns.Count; index++)
+            {
+                AddGun(_startingGuns[index]);
+            }
+
+            for (int index = 0; index < _startingPowers.Count; index++)
+            {
+                AddAutoPower(_startingPowers[index]);
+            }
+        }
+
         private void TickLook(Vector2 lookDelta)
         {
             Vector2 look = lookDelta * mouseSensitivity;
@@ -187,21 +298,39 @@ namespace Deucarian.TemplateGameMovementFps.Actors
             ApplyCameraLocalRotation();
         }
 
-        private void TickGun(bool fireHeld, float deltaTime)
+        private void TickGun(bool fireHeld, bool reloadPressed, bool nextGunPressed, float deltaTime)
         {
-            _fireCooldown = Mathf.Max(0f, _fireCooldown - deltaTime);
-            if (!fireHeld || _fireCooldown > 0f)
+            for (int index = 0; index < _guns.Count; index++)
+            {
+                _guns[index].Tick(deltaTime);
+            }
+
+            if (_guns.Count == 0)
             {
                 return;
             }
 
-            float cadenceMultiplier = 1f + (float)(_session == null ? 0d : _session.Progression.GunCadenceMultiplier);
-            _fireCooldown = _gun.FireIntervalSeconds / Mathf.Max(0.1f, cadenceMultiplier);
-            FireHitscan();
-            _pitch = Mathf.Clamp(_pitch - _gun.RecoilPitchDegrees, -84f, 84f);
+            if (nextGunPressed)
+            {
+                _currentGunIndex = (_currentGunIndex + 1) % _guns.Count;
+            }
+
+            MovementFpsGunRuntimeState gun = CurrentGun;
+            if (reloadPressed)
+            {
+                gun.StartReload(1f);
+            }
+
+            if (!fireHeld || !gun.TryFire(ResolveGunCadenceMultiplier()))
+            {
+                return;
+            }
+
+            FireGun(gun.Definition);
+            _pitch = Mathf.Clamp(_pitch - gun.Definition.RecoilPitchDegrees, -84f, 84f);
         }
 
-        private void FireHitscan()
+        private void FireGun(MovementFpsGunDefinition definition)
         {
             if (viewCamera == null)
             {
@@ -209,14 +338,19 @@ namespace Deucarian.TemplateGameMovementFps.Actors
             }
 
             Vector3 origin = muzzle == null ? viewCamera.transform.position : muzzle.position;
-            Vector3 direction = viewCamera.transform.forward;
-            if (_gun.SpreadDegrees > 0f)
+            Vector3 direction = ResolveShotDirection(definition);
+            if (definition.Kind == MovementFpsGunKind.Projectile)
             {
-                Vector2 spread = Random.insideUnitCircle * _gun.SpreadDegrees;
-                direction = Quaternion.Euler(-spread.y, spread.x, 0f) * direction;
+                FireProjectile(definition, origin, direction);
+                return;
             }
 
-            RaycastHit[] hits = Physics.RaycastAll(origin, direction, _gun.Range, ~0, QueryTriggerInteraction.Ignore);
+            FireHitscan(definition, origin, direction);
+        }
+
+        private void FireHitscan(MovementFpsGunDefinition definition, Vector3 origin, Vector3 direction)
+        {
+            RaycastHit[] hits = Physics.RaycastAll(origin, direction, definition.Range, ~0, QueryTriggerInteraction.Ignore);
             float nearestDistance = float.MaxValue;
             MovementFpsEnemyActor target = null;
             for (int index = 0; index < hits.Length; index++)
@@ -237,8 +371,100 @@ namespace Deucarian.TemplateGameMovementFps.Actors
 
             if (target != null)
             {
-                FireAt(target);
+                target.ApplyDamage(ResolveGunDamage(definition), new CombatantId("combatant.player"), definition.DamageType);
             }
+        }
+
+        private MovementFpsProjectileActor FireProjectile(MovementFpsGunDefinition definition, Vector3 origin, Vector3 direction)
+        {
+            return _session.SpawnProjectile(
+                this,
+                origin,
+                direction,
+                definition,
+                ResolveGunDamage(definition),
+                ResolveProjectileSpeed(definition));
+        }
+
+        private Vector3 ResolveShotDirection(MovementFpsGunDefinition definition)
+        {
+            Vector3 direction = viewCamera == null ? transform.forward : viewCamera.transform.forward;
+            if (definition.SpreadDegrees > 0f)
+            {
+                Vector2 spread = Random.insideUnitCircle * definition.SpreadDegrees;
+                direction = Quaternion.Euler(-spread.y, spread.x, 0f) * direction;
+            }
+
+            return direction.normalized;
+        }
+
+        private void TickAutoPowers(float deltaTime)
+        {
+            for (int index = 0; index < _autoPowers.Count; index++)
+            {
+                MovementFpsAutoPowerRuntimeState power = _autoPowers[index];
+                power.Tick(deltaTime);
+                if (!power.Ready)
+                {
+                    continue;
+                }
+
+                CastAutoPower(power.Definition);
+                power.ResetCooldown(1f);
+            }
+        }
+
+        private void CastAutoPower(MovementFpsAutoPowerDefinition definition)
+        {
+            double damage = definition.Damage * (1d + (_session == null ? 0d : _session.Progression.AutoPowerDamageMultiplier));
+            float radius = definition.Radius;
+            switch (definition.Kind)
+            {
+                case MovementFpsAutoPowerKind.OrbitPulse:
+                    _session.DamageEnemiesInRadius(transform.position, radius, damage, definition.DamageType);
+                    break;
+                case MovementFpsAutoPowerKind.ChainBolt:
+                    IReadOnlyList<MovementFpsEnemyActor> targets = _session.GetNearestEnemies(transform.position, definition.Range, definition.TargetCount);
+                    for (int index = 0; index < targets.Count; index++)
+                    {
+                        targets[index].ApplyDamage(damage, new CombatantId("combatant.player"), definition.DamageType);
+                    }
+
+                    break;
+                case MovementFpsAutoPowerKind.GroundRift:
+                    IReadOnlyList<MovementFpsEnemyActor> riftTargets = _session.GetNearestEnemies(transform.position, definition.Range, 1);
+                    Vector3 center = riftTargets.Count > 0 ? riftTargets[0].transform.position : transform.position + transform.forward * 8f;
+                    _session.DamageEnemiesInRadius(center, radius, damage, definition.DamageType);
+                    break;
+            }
+        }
+
+        private double ResolveGunDamage(MovementFpsGunDefinition definition)
+        {
+            return definition.Damage + (_session == null ? 0d : _session.Progression.GunDamageBonus);
+        }
+
+        private float ResolveGunCadenceMultiplier()
+        {
+            return 1f + (float)(_session == null ? 0d : _session.Progression.GunCadenceMultiplier);
+        }
+
+        private float ResolveProjectileSpeed(MovementFpsGunDefinition definition)
+        {
+            return definition.ProjectileSpeed * (1f + (float)(_session == null ? 0d : _session.Progression.ProjectileSpeedMultiplier));
+        }
+
+        private MovementFpsGunRuntimeState FindGun(MovementFpsGunKind kind)
+        {
+            for (int index = 0; index < _guns.Count; index++)
+            {
+                if (_guns[index].Definition.Kind == kind)
+                {
+                    return _guns[index];
+                }
+            }
+
+            return null;
         }
 
         private void TickCameraPosture(float deltaTime)
@@ -318,6 +544,38 @@ namespace Deucarian.TemplateGameMovementFps.Actors
             if (viewCamera != null)
             {
                 viewCamera.transform.localRotation = Quaternion.Euler(_pitch, 0f, _cameraRoll);
+            }
+        }
+
+        private static void CopyStartingContent(IReadOnlyList<MovementFpsGunDefinition> source, List<MovementFpsGunDefinition> destination)
+        {
+            if (source == null)
+            {
+                return;
+            }
+
+            for (int index = 0; index < source.Count; index++)
+            {
+                if (!string.IsNullOrWhiteSpace(source[index].Id))
+                {
+                    destination.Add(source[index]);
+                }
+            }
+        }
+
+        private static void CopyStartingContent(IReadOnlyList<MovementFpsAutoPowerDefinition> source, List<MovementFpsAutoPowerDefinition> destination)
+        {
+            if (source == null)
+            {
+                return;
+            }
+
+            for (int index = 0; index < source.Count; index++)
+            {
+                if (!string.IsNullOrWhiteSpace(source[index].Id))
+                {
+                    destination.Add(source[index]);
+                }
             }
         }
     }

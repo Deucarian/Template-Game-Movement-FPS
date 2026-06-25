@@ -25,6 +25,8 @@ namespace Deucarian.TemplateGameMovementFps.Progression
         public double GunDamageBonus { get; private set; }
         public double GunCadenceMultiplier { get; private set; }
         public double PickupRadiusBonus { get; private set; }
+        public double ProjectileSpeedMultiplier { get; private set; }
+        public double AutoPowerDamageMultiplier { get; private set; }
         public IReadOnlyList<RunUpgradeDefinition> CurrentDraft => _currentDraft;
         public bool HasDraft => _currentDraft.Count > 0;
         public int RequiredExperience => BaseRequirement + (Level - 1) * 6;
@@ -37,6 +39,8 @@ namespace Deucarian.TemplateGameMovementFps.Progression
             GunDamageBonus = 0d;
             GunCadenceMultiplier = 0d;
             PickupRadiusBonus = 0d;
+            ProjectileSpeedMultiplier = 0d;
+            AutoPowerDamageMultiplier = 0d;
             _currentDraft.Clear();
             _draftCounter = 0;
         }
@@ -113,6 +117,23 @@ namespace Deucarian.TemplateGameMovementFps.Progression
             return result;
         }
 
+        public RunUpgradeSelectionResult ApplyUpgradeById(RunUpgradeId id)
+        {
+            if (!_catalog.TryGet(id, out RunUpgradeDefinition selected))
+            {
+                return new RunUpgradeSelectionResult(RunUpgradeSelectionStatus.UnknownUpgrade, id, GetUpgradeRank(id));
+            }
+
+            RunUpgradeSelectionResult result = _upgradeState.Select(_catalog, selected.Id);
+            if (!result.Succeeded)
+            {
+                return result;
+            }
+
+            ApplyEffects(selected);
+            return result;
+        }
+
         public int GetUpgradeRank(RunUpgradeId id)
         {
             return _upgradeState.GetRank(id);
@@ -134,6 +155,14 @@ namespace Deucarian.TemplateGameMovementFps.Progression
                 else if (effect.TargetId.Equals(BasicMovementFpsGame.PickupRadiusTargetId))
                 {
                     PickupRadiusBonus += effect.Amount;
+                }
+                else if (effect.TargetId.Equals(BasicMovementFpsGame.ProjectileSpeedTargetId))
+                {
+                    ProjectileSpeedMultiplier += effect.Amount;
+                }
+                else if (effect.TargetId.Equals(BasicMovementFpsGame.AutoPowerDamageTargetId))
+                {
+                    AutoPowerDamageMultiplier += effect.Amount;
                 }
             }
         }

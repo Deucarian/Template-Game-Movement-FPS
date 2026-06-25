@@ -1,6 +1,6 @@
 # Movement FPS Validation
 
-Phase 2V validation targets:
+Phase 2V and 2W validation targets:
 
 - Unity package import/compile
 - EditMode tests for content defaults and XP/draft adapter logic
@@ -9,6 +9,11 @@ Phase 2V validation targets:
 - PlayMode sprint, slide, and double jump smoke
 - PlayMode wallrun/wall jump smoke when geometry and timing permit
 - PlayMode gun damage and enemy death
+- PlayMode projectile launcher damage and enemy death
+- PlayMode projectile upgrade effect
+- PlayMode Orbit Pulse damage
+- PlayMode Chain Bolt damage
+- PlayMode Ground Rift damage
 - PlayMode XP pickup/level-up draft
 - PlayMode restart after defeat
 
@@ -25,6 +30,8 @@ Open the sample scene and verify:
 - wallrun walls can be traversed
 - mouse look and fire work
 - enemy dies from carbine hits
+- Rift Launcher unlock/sample data exists and projectile shots damage enemies
+- Orbit Pulse, Chain Bolt, and Ground Rift powers damage enemies through local cooldown logic
 - XP pickup opens draft after collection
 - 1/2/3 applies a draft choice
 - defeat can restart with R

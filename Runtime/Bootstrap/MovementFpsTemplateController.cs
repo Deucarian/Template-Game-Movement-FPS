@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Deucarian.Combat;
 using Deucarian.RunUpgrades;
 using Deucarian.TemplateGameMovementFps.Actors;
+using Deucarian.TemplateGameMovementFps.Combat;
 using Deucarian.TemplateGameMovementFps.Movement;
 using Deucarian.TemplateGameMovementFps.Progression;
 using UnityEngine;
@@ -27,7 +28,11 @@ namespace Deucarian.TemplateGameMovementFps
         private MovementFpsRunProgression _progression;
         private MovementFpsPlayerDefinition _playerDefinition;
         private MovementFpsEnemyDefinition _enemyDefinition;
-        private MovementFpsGunDefinition _gunDefinition;
+        private MovementFpsGunDefinition _carbineDefinition;
+        private MovementFpsGunDefinition _riftLauncherDefinition;
+        private MovementFpsAutoPowerDefinition _orbitPulseDefinition;
+        private MovementFpsAutoPowerDefinition _chainBoltDefinition;
+        private MovementFpsAutoPowerDefinition _groundRiftDefinition;
         private float _spawnTimer;
         private bool _draftOpen;
         private bool _defeat;
@@ -95,7 +100,11 @@ namespace Deucarian.TemplateGameMovementFps
             _progression = new MovementFpsRunProgression(BasicMovementFpsGame.CreateUpgradeCatalog());
             _playerDefinition = BasicMovementFpsGame.CreatePlayerDefinition();
             _enemyDefinition = BasicMovementFpsGame.CreateEnemyDefinition();
-            _gunDefinition = BasicMovementFpsGame.CreateCarbineDefinition();
+            _carbineDefinition = BasicMovementFpsGame.CreateCarbineDefinition();
+            _riftLauncherDefinition = BasicMovementFpsGame.CreateRiftLauncherDefinition();
+            _orbitPulseDefinition = BasicMovementFpsGame.CreateOrbitPulseDefinition();
+            _chainBoltDefinition = BasicMovementFpsGame.CreateChainBoltDefinition();
+            _groundRiftDefinition = BasicMovementFpsGame.CreateGroundRiftDefinition();
 
             GameObject root = new GameObject("Movement FPS Runtime");
             root.transform.SetParent(transform, false);
@@ -113,7 +122,7 @@ namespace Deucarian.TemplateGameMovementFps
         public void StartRun()
         {
             EnsureBootstrapped();
-            ClearEnemiesAndPickups();
+            ClearRuntimeCombatObjects();
             _progression.Reset();
             _draftOpen = false;
             _defeat = false;
@@ -155,6 +164,38 @@ namespace Deucarian.TemplateGameMovementFps
             return enemy;
         }
 
+        public MovementFpsProjectileActor SpawnProjectile(
+            MovementFpsPlayerController owner,
+            Vector3 origin,
+            Vector3 direction,
+            MovementFpsGunDefinition gun,
+            double damage,
+            float resolvedSpeed)
+        {
+            EnsureBootstrapped();
+            Vector3 resolvedDirection = direction.sqrMagnitude <= 0.0001f ? Vector3.forward : direction.normalized;
+            GameObject projectileObject = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            projectileObject.name = "Movement FPS Projectile";
+            projectileObject.transform.SetParent(_runtimeRoot, false);
+            projectileObject.transform.SetPositionAndRotation(origin, Quaternion.LookRotation(resolvedDirection));
+            projectileObject.transform.localScale = Vector3.one * (gun.ProjectileCollisionRadius * 2.4f);
+            Renderer renderer = projectileObject.GetComponent<Renderer>();
+            if (renderer != null)
+            {
+                renderer.material.color = new Color(0.75f, 0.45f, 1f, 1f);
+            }
+
+            MovementFpsProjectileActor projectile = projectileObject.AddComponent<MovementFpsProjectileActor>();
+            projectile.Initialize(
+                owner,
+                gun.DamageType,
+                damage,
+                resolvedDirection * Mathf.Max(1f, resolvedSpeed),
+                gun.ProjectileLifetimeSeconds,
+                gun.ProjectileCollisionRadius);
+            return projectile;
+        }
+
         public void HandleEnemyKilled(MovementFpsEnemyActor enemy)
         {
             if (enemy == null)
@@ -165,6 +206,60 @@ namespace Deucarian.TemplateGameMovementFps
             _enemies.Remove(enemy);
             SpawnExperiencePickup(enemy.transform.position + Vector3.up * 0.4f, enemy.ExperienceDrop);
             Destroy(enemy.gameObject);
+        }
+
+        public void DamageEnemiesInRadius(Vector3 center, float radius, double damage, DamageTypeId damageType)
+        {
+            List<MovementFpsEnemyActor> targets = new List<MovementFpsEnemyActor>();
+            float sqrRadius = radius * radius;
+            for (int index = 0; index < _enemies.Count; index++)
+            {
+                MovementFpsEnemyActor enemy = _enemies[index];
+                if (enemy == null || !enemy.IsAlive)
+                {
+                    continue;
+                }
+
+                if ((enemy.transform.position - center).sqrMagnitude <= sqrRadius)
+                {
+                    targets.Add(enemy);
+                }
+            }
+
+            for (int index = 0; index < targets.Count; index++)
+            {
+                targets[index].ApplyDamage(damage, new CombatantId("combatant.player"), damageType);
+            }
+        }
+
+        public IReadOnlyList<MovementFpsEnemyActor> GetNearestEnemies(Vector3 origin, float range, int targetCount)
+        {
+            List<MovementFpsEnemyActor> targets = new List<MovementFpsEnemyActor>();
+            float sqrRange = range * range;
+            for (int index = 0; index < _enemies.Count; index++)
+            {
+                MovementFpsEnemyActor enemy = _enemies[index];
+                if (enemy == null || !enemy.IsAlive)
+                {
+                    continue;
+                }
+
+                if ((enemy.transform.position - origin).sqrMagnitude <= sqrRange)
+                {
+                    targets.Add(enemy);
+                }
+            }
+
+            targets.Sort((left, right) =>
+                (left.transform.position - origin).sqrMagnitude.CompareTo((right.transform.position - origin).sqrMagnitude));
+
+            int count = Mathf.Clamp(targetCount, 0, targets.Count);
+            if (count == targets.Count)
+            {
+                return targets;
+            }
+
+            return targets.GetRange(0, count);
         }
 
         public void ApplyPlayerDamage(double amount)
@@ -190,6 +285,11 @@ namespace Deucarian.TemplateGameMovementFps
         public RunUpgradeSelectionResult ChooseDraft(int index)
         {
             RunUpgradeSelectionResult result = _progression.ChooseDraft(index);
+            if (result.Succeeded)
+            {
+                ApplyRuntimeContentForUpgrade(result.Id);
+            }
+
             _draftOpen = _progression.HasDraft;
             return result;
         }
@@ -202,6 +302,33 @@ namespace Deucarian.TemplateGameMovementFps
         public Deucarian.Combat.DamageResult FireAtEnemyForTest(MovementFpsEnemyActor enemy)
         {
             return _player.FireAt(enemy);
+        }
+
+        public MovementFpsProjectileActor FireProjectileAtEnemyForTest(MovementFpsEnemyActor enemy)
+        {
+            _player.AddGun(_riftLauncherDefinition);
+            return _player.FireProjectileAtForTest(enemy);
+        }
+
+        public void AddPowerForTest(MovementFpsAutoPowerDefinition definition)
+        {
+            _player.AddAutoPower(definition);
+        }
+
+        public void TickPlayerPowersForTest(float deltaTime)
+        {
+            _player.TickAutoPowersForTest(deltaTime);
+        }
+
+        public RunUpgradeSelectionResult ApplyUpgradeByIdForTest(RunUpgradeId id)
+        {
+            RunUpgradeSelectionResult result = _progression.ApplyUpgradeById(id);
+            if (result.Succeeded)
+            {
+                ApplyRuntimeContentForUpgrade(result.Id);
+            }
+
+            return result;
         }
 
         public void CollectExperienceForTest(int amount)
@@ -239,7 +366,27 @@ namespace Deucarian.TemplateGameMovementFps
             camera.fieldOfView = 76f;
 
             _player = playerObject.AddComponent<MovementFpsPlayerController>();
-            _player.Initialize(this, _playerDefinition, _gunDefinition);
+            _player.Initialize(
+                this,
+                _playerDefinition,
+                new[] { _carbineDefinition },
+                new[] { _orbitPulseDefinition });
+        }
+
+        private void ApplyRuntimeContentForUpgrade(RunUpgradeId id)
+        {
+            if (id.Equals(BasicMovementFpsGame.RiftLauncherUnlockUpgradeId))
+            {
+                _player.AddGun(_riftLauncherDefinition);
+            }
+            else if (id.Equals(BasicMovementFpsGame.ChainBoltUnlockUpgradeId))
+            {
+                _player.AddAutoPower(_chainBoltDefinition);
+            }
+            else if (id.Equals(BasicMovementFpsGame.GroundRiftUnlockUpgradeId))
+            {
+                _player.AddAutoPower(_groundRiftDefinition);
+            }
         }
 
         private void BuildSampleArena()
@@ -283,7 +430,7 @@ namespace Deucarian.TemplateGameMovementFps
             pickup.Initialize(this, amount);
         }
 
-        private void ClearEnemiesAndPickups()
+        private void ClearRuntimeCombatObjects()
         {
             for (int index = _runtimeRoot.childCount - 1; index >= 0; index--)
             {
@@ -293,7 +440,9 @@ namespace Deucarian.TemplateGameMovementFps
                     continue;
                 }
 
-                if (child.GetComponent<MovementFpsEnemyActor>() != null || child.GetComponent<MovementFpsPickupActor>() != null)
+                if (child.GetComponent<MovementFpsEnemyActor>() != null ||
+                    child.GetComponent<MovementFpsPickupActor>() != null ||
+                    child.GetComponent<MovementFpsProjectileActor>() != null)
                 {
                     Destroy(child.gameObject);
                 }
@@ -314,10 +463,15 @@ namespace Deucarian.TemplateGameMovementFps
                 return;
             }
 
-            GUILayout.BeginArea(new Rect(16f, 16f, 460f, 220f));
+            GUILayout.BeginArea(new Rect(16f, 16f, 520f, 280f));
             GUILayout.Label("Movement FPS Template");
             GUILayout.Label($"HP {_player.CurrentHealth:0}/{_player.MaximumHealth:0}  Level {_progression.Level}  XP {_progression.CurrentExperience}/{_progression.RequiredExperience}");
             GUILayout.Label($"State {_player.Motor.State}  Speed {Vector3.ProjectOnPlane(_player.Motor.Velocity, Vector3.up).magnitude:0.0}");
+            if (_player.CurrentGun != null)
+            {
+                MovementFpsGunRuntimeState gun = _player.CurrentGun;
+                GUILayout.Label($"{gun.Definition.DisplayName}  Ammo {gun.Ammo}/{gun.Definition.MagazineSize}{(gun.Reloading ? "  Reloading" : string.Empty)}");
+            }
 
             if (_draftOpen)
             {
@@ -333,7 +487,7 @@ namespace Deucarian.TemplateGameMovementFps
             }
             else
             {
-                GUILayout.Label("WASD move, Shift sprint, Ctrl/C slide, Space jump, mouse fire/look");
+                GUILayout.Label("WASD move, Shift sprint, Ctrl/C slide, Space jump, mouse fire/look, Q swaps guns");
             }
 
             GUILayout.EndArea();

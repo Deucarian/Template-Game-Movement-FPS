@@ -68,6 +68,11 @@ namespace Deucarian.TemplateGameMovementFps.Actors
 
         public Deucarian.Combat.DamageResult ApplyDamage(double amount, CombatantId sourceId)
         {
+            return ApplyDamage(amount, sourceId, BasicMovementFpsGame.KineticDamageType);
+        }
+
+        public Deucarian.Combat.DamageResult ApplyDamage(double amount, CombatantId sourceId, DamageTypeId damageType)
+        {
             if (!IsAlive)
             {
                 return null;
@@ -75,7 +80,7 @@ namespace Deucarian.TemplateGameMovementFps.Actors
 
             DamageRequest request = new DamageRequest(
                 _health.Id,
-                new[] { new DamageComponent(BasicMovementFpsGame.KineticDamageType, amount) },
+                new[] { new DamageComponent(damageType.IsEmpty ? BasicMovementFpsGame.KineticDamageType : damageType, amount) },
                 sourceId: sourceId);
             Deucarian.Combat.DamageResult result = DamageResolver.Apply(_session.CombatCatalog, _health, null, request);
 

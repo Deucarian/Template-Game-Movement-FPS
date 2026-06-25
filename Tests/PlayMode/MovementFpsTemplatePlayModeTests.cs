@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Reflection;
 using Deucarian.TemplateGameMovementFps.Actors;
+using Deucarian.TemplateGameMovementFps.Combat;
 using Deucarian.TemplateGameMovementFps.Movement;
 using NUnit.Framework;
 using UnityEngine;
@@ -117,6 +118,99 @@ namespace Deucarian.TemplateGameMovementFps.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator ProjectileLauncherDamageCanKillEnemy()
+        {
+            MovementFpsTemplateController controller = CreateController();
+            yield return null;
+
+            MovementFpsEnemyActor enemy = controller.SpawnEnemyForTest(controller.Player.transform.position + Vector3.forward * 5f);
+            MovementFpsProjectileActor first = controller.FireProjectileAtEnemyForTest(enemy);
+            Assert.IsNotNull(first);
+            yield return new WaitForSeconds(0.25f);
+
+            MovementFpsProjectileActor second = controller.FireProjectileAtEnemyForTest(enemy);
+            Assert.IsNotNull(second);
+            yield return new WaitForSeconds(0.25f);
+
+            Assert.IsFalse(enemy != null && enemy.IsAlive);
+
+            Object.Destroy(controller.gameObject);
+        }
+
+        [UnityTest]
+        public IEnumerator ProjectileUpgradeAffectsRuntimeStats()
+        {
+            MovementFpsTemplateController controller = CreateController();
+            yield return null;
+
+            double previousSpeed = controller.Progression.ProjectileSpeedMultiplier;
+            Assert.IsTrue(controller.ApplyUpgradeByIdForTest(BasicMovementFpsGame.ProjectileSpeedUpgradeId).Succeeded);
+
+            Assert.That(controller.Progression.ProjectileSpeedMultiplier, Is.GreaterThan(previousSpeed));
+
+            Object.Destroy(controller.gameObject);
+        }
+
+        [UnityTest]
+        public IEnumerator OrbitPulseDamageCanKillEnemy()
+        {
+            MovementFpsTemplateController controller = CreateController();
+            yield return null;
+
+            MovementFpsEnemyActor enemy = controller.SpawnEnemyForTest(controller.Player.transform.position + Vector3.forward * 2f);
+            for (int index = 0; index < 6; index++)
+            {
+                controller.TickPlayerPowersForTest(BasicMovementFpsGame.CreateOrbitPulseDefinition().CooldownSeconds + 0.1f);
+            }
+
+            yield return null;
+
+            Assert.IsFalse(enemy != null && enemy.IsAlive);
+
+            Object.Destroy(controller.gameObject);
+        }
+
+        [UnityTest]
+        public IEnumerator ChainBoltDamageCanKillEnemy()
+        {
+            MovementFpsTemplateController controller = CreateController();
+            yield return null;
+
+            MovementFpsEnemyActor enemy = controller.SpawnEnemyForTest(controller.Player.transform.position + Vector3.forward * 8f);
+            controller.AddPowerForTest(BasicMovementFpsGame.CreateChainBoltDefinition());
+            for (int index = 0; index < 4; index++)
+            {
+                controller.TickPlayerPowersForTest(BasicMovementFpsGame.CreateChainBoltDefinition().CooldownSeconds + 0.1f);
+            }
+
+            yield return null;
+
+            Assert.IsFalse(enemy != null && enemy.IsAlive);
+
+            Object.Destroy(controller.gameObject);
+        }
+
+        [UnityTest]
+        public IEnumerator GroundRiftDamageCanKillEnemy()
+        {
+            MovementFpsTemplateController controller = CreateController();
+            yield return null;
+
+            MovementFpsEnemyActor enemy = controller.SpawnEnemyForTest(controller.Player.transform.position + Vector3.forward * 7f);
+            controller.AddPowerForTest(BasicMovementFpsGame.CreateGroundRiftDefinition());
+            for (int index = 0; index < 3; index++)
+            {
+                controller.TickPlayerPowersForTest(BasicMovementFpsGame.CreateGroundRiftDefinition().CooldownSeconds + 0.1f);
+            }
+
+            yield return null;
+
+            Assert.IsFalse(enemy != null && enemy.IsAlive);
+
+            Object.Destroy(controller.gameObject);
+        }
+
+        [UnityTest]
         public IEnumerator ExperienceCollectionOpensDraftAndUpgradeApplies()
         {
             MovementFpsTemplateController controller = CreateController();
@@ -129,13 +223,19 @@ namespace Deucarian.TemplateGameMovementFps.PlayModeTests
             double previousDamage = controller.Progression.GunDamageBonus;
             double previousCadence = controller.Progression.GunCadenceMultiplier;
             double previousPickup = controller.Progression.PickupRadiusBonus;
+            int previousGunCount = controller.Player.Guns.Count;
+            int previousPowerCount = controller.Player.AutoPowers.Count;
             Assert.IsTrue(controller.ChooseDraftForTest(0).Succeeded);
 
             Assert.IsFalse(controller.DraftOpen);
             Assert.IsTrue(
                 controller.Progression.GunDamageBonus > previousDamage ||
                 controller.Progression.GunCadenceMultiplier > previousCadence ||
-                controller.Progression.PickupRadiusBonus > previousPickup);
+                controller.Progression.PickupRadiusBonus > previousPickup ||
+                controller.Progression.ProjectileSpeedMultiplier > 0d ||
+                controller.Progression.AutoPowerDamageMultiplier > 0d ||
+                controller.Player.Guns.Count > previousGunCount ||
+                controller.Player.AutoPowers.Count > previousPowerCount);
 
             Object.Destroy(controller.gameObject);
         }

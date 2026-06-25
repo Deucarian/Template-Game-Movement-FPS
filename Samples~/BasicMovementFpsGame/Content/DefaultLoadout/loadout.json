@@ -3,14 +3,52 @@
     "maximumHealth": 100,
     "pickupRadius": 4.2
   },
-  "weapon": {
-    "id": "weapon.aether-carbine",
-    "damage": 26,
-    "fireIntervalSeconds": 0.16,
-    "range": 80,
-    "spreadDegrees": 0.45,
-    "recoilPitchDegrees": 0.75
-  },
+  "weapons": [
+    {
+      "id": "weapon.aether-carbine",
+      "kind": "hitscan",
+      "damage": 26,
+      "fireIntervalSeconds": 0.16,
+      "range": 80,
+      "spreadDegrees": 0.45,
+      "recoilPitchDegrees": 0.75
+    },
+    {
+      "id": "gun.rift-launcher",
+      "kind": "projectile",
+      "damage": 38,
+      "fireIntervalSeconds": 0.72,
+      "magazineSize": 6,
+      "reloadSeconds": 1.55,
+      "projectileSpeed": 30,
+      "projectileLifetimeSeconds": 3
+    }
+  ],
+  "autoPowers": [
+    {
+      "id": "power.orbit-pulse",
+      "kind": "orbitPulse",
+      "damage": 9,
+      "cooldownSeconds": 1.6,
+      "radius": 3
+    },
+    {
+      "id": "power.chain-bolt",
+      "kind": "chainBolt",
+      "damage": 16,
+      "cooldownSeconds": 2.8,
+      "range": 24,
+      "targetCount": 3
+    },
+    {
+      "id": "power.ground-rift",
+      "kind": "groundRift",
+      "damage": 22,
+      "cooldownSeconds": 4.5,
+      "range": 18,
+      "radius": 3
+    }
+  ],
   "enemy": {
     "id": "enemy.husk-thrall",
     "maximumHealth": 52,

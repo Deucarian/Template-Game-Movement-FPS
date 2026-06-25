@@ -6,7 +6,8 @@ Starter Unity package for a movement-FPS / wallrunner horde arena template. This
 
 - Local `WallrunnerMotor` and `FpsInputReader` adapted from the Movement-FPS reference repo.
 - Runtime sample controller that builds a simple wallrun arena, player, enemy, XP pickup, and draft loop.
-- Basic hitscan carbine combat using `com.deucarian.combat`.
+- Basic hitscan carbine and projectile launcher combat using `com.deucarian.combat`.
+- Autonomous Orbit Pulse, Chain Bolt, and Ground Rift powers with local cooldown/targeting rules.
 - XP and three-choice upgrade draft adapter using `com.deucarian.run-upgrades`.
 - `Samples~/BasicMovementFpsGame` with a minimal boot scene.
 - EditMode and PlayMode smoke tests for the first slice.
@@ -26,7 +27,9 @@ Keep these systems local to this template until a concrete second FPS-style game
 - `WallrunnerMotor`
 - first-person input
 - camera feedback
-- recoil/spread/ammo feel
+- projectile weapon feel
+- recoil/spread/ammo/reload feel
+- autonomous power targeting and cooldown timing
 - movement probes
 - wallrun, slide, double-jump, mantle/vault tuning
 - arena traversal geometry
@@ -44,4 +47,4 @@ It deliberately does not use Deucarian Session for gameplay run state and does n
 
 ## Deferred
 
-Projectile guns, autonomous powers, miniboss/victory flow, richer spawn-pocket rules, horde escalation, save/meta progression, and deeper debug tooling are deferred to later Movement-FPS phases.
+Miniboss/victory flow, richer spawn-pocket rules, horde escalation, save/meta progression, full authored ScriptableObject pipelines, and deeper debug tooling are deferred to later Movement-FPS phases.
