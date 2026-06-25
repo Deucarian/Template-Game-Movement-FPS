@@ -1,0 +1,16 @@
+{
+  "name": "Deucarian.TemplateGameMovementFps.BasicMovementFpsGame",
+  "rootNamespace": "Deucarian.TemplateGameMovementFps.BasicMovementFpsGame",
+  "references": [
+    "Deucarian.TemplateGameMovementFps"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

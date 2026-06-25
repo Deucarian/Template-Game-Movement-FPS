@@ -1,0 +1,25 @@
+{
+  "name": "Deucarian.TemplateGameMovementFps.Tests",
+  "rootNamespace": "Deucarian.TemplateGameMovementFps.Tests",
+  "references": [
+    "Deucarian.TemplateGameMovementFps",
+    "Deucarian.Combat",
+    "Deucarian.RunUpgrades"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [
+    "UNITY_INCLUDE_TESTS"
+  ],
+  "versionDefines": [],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ],
+  "noEngineReferences": false
+}

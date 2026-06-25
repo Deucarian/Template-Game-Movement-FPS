@@ -1,0 +1,19 @@
+{
+  "name": "Deucarian.TemplateGameMovementFps",
+  "rootNamespace": "Deucarian.TemplateGameMovementFps",
+  "references": [
+    "Deucarian.Combat",
+    "Deucarian.GameplayFoundation",
+    "Deucarian.RunUpgrades",
+    "Unity.InputSystem"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

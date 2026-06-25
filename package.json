@@ -1,0 +1,33 @@
+{
+  "name": "com.deucarian.template.game.movement-fps",
+  "version": "0.1.0",
+  "displayName": "Deucarian Template Game - Movement FPS",
+  "description": "Starter Unity game template for a movement-FPS horde arena slice with local wallrunner movement and clean Deucarian combat/upgrade adapters.",
+  "unity": "6000.3",
+  "author": {
+    "name": "Deucarian"
+  },
+  "license": "MIT",
+  "keywords": [
+    "deucarian",
+    "template",
+    "game",
+    "movement-fps",
+    "wallrun",
+    "arena",
+    "horde"
+  ],
+  "dependencies": {
+    "com.deucarian.combat": "0.1.0",
+    "com.deucarian.gameplay-foundation": "0.1.0",
+    "com.deucarian.run-upgrades": "0.1.0",
+    "com.unity.inputsystem": "1.17.0"
+  },
+  "samples": [
+    {
+      "displayName": "Basic Movement FPS Game",
+      "description": "A playable first slice with WallrunnerMotor movement, sprint, slide, double jump, wallrun/wall jump, basic hitscan gunplay, enemy spawn/chase/death, XP pickups, a simple level-up draft, and restart flow.",
+      "path": "Samples~/BasicMovementFpsGame"
+    }
+  ]
+}

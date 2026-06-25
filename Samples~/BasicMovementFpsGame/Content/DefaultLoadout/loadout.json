@@ -1,0 +1,21 @@
+{
+  "player": {
+    "maximumHealth": 100,
+    "pickupRadius": 4.2
+  },
+  "weapon": {
+    "id": "weapon.aether-carbine",
+    "damage": 26,
+    "fireIntervalSeconds": 0.16,
+    "range": 80,
+    "spreadDegrees": 0.45,
+    "recoilPitchDegrees": 0.75
+  },
+  "enemy": {
+    "id": "enemy.husk-thrall",
+    "maximumHealth": 52,
+    "moveSpeed": 3.8,
+    "contactDamage": 8,
+    "experienceDrop": 12
+  }
+}
