@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Deucarian.GameplayFoundation;
 using Deucarian.RunUpgrades;
 using Deucarian.TemplateGameMovementFps.Run;
 
@@ -110,109 +111,68 @@ namespace Deucarian.TemplateGameMovementFps.Content
     {
         public static MovementFpsContentValidationReport Validate(MovementFpsContentLibrary library)
         {
-            var errors = new List<string>();
+            var report = new ContentValidationReport();
             if (library == null)
             {
-                errors.Add("Movement FPS content library is missing.");
-                return new MovementFpsContentValidationReport(errors);
+                report.AddError("Movement FPS content library is missing.");
+                return new MovementFpsContentValidationReport(report.GetMessages());
             }
 
-            HashSet<string> gunIds = ValidateStableIds(library.Guns, "weapon", definition => definition.Id, errors);
-            HashSet<string> powerIds = ValidateStableIds(library.Powers, "power", definition => definition.Id, errors);
-            HashSet<string> enemyIds = ValidateStableIds(library.Enemies, "enemy", definition => definition.Id, errors);
-            ValidateUpgrades(library.Upgrades, gunIds, powerIds, errors);
-            ValidateLoadout(library.StartingLoadout, gunIds, powerIds, errors);
-            ValidateWave(library.Wave, enemyIds, errors);
-            return new MovementFpsContentValidationReport(errors);
-        }
-
-        private static HashSet<string> ValidateStableIds<T>(
-            IReadOnlyList<T> definitions,
-            string label,
-            Func<T, string> resolveId,
-            ICollection<string> errors)
-        {
-            var ids = new HashSet<string>(StringComparer.Ordinal);
-            if (definitions == null || definitions.Count == 0)
-            {
-                errors.Add($"At least one {label} definition is required.");
-                return ids;
-            }
-
-            for (int index = 0; index < definitions.Count; index++)
-            {
-                string id = resolveId(definitions[index]);
-                if (string.IsNullOrWhiteSpace(id))
-                {
-                    errors.Add($"{label} definition at index {index} is missing a stable id.");
-                    continue;
-                }
-
-                if (!ids.Add(id))
-                {
-                    errors.Add($"Duplicate {label} id '{id}'.");
-                }
-            }
-
-            return ids;
+            ContentReferenceSet gunIds = ContentValidation.RequireUniqueIds(library.Guns, "weapon", definition => definition.Id, report, requireAtLeastOne: true);
+            ContentReferenceSet powerIds = ContentValidation.RequireUniqueIds(library.Powers, "power", definition => definition.Id, report, requireAtLeastOne: true);
+            ContentReferenceSet enemyIds = ContentValidation.RequireUniqueIds(library.Enemies, "enemy", definition => definition.Id, report, requireAtLeastOne: true);
+            ValidateUpgrades(library.Upgrades, gunIds, powerIds, report);
+            ValidateLoadout(library.StartingLoadout, gunIds, powerIds, report);
+            ValidateWave(library.Wave, enemyIds, report);
+            return new MovementFpsContentValidationReport(report.GetMessages());
         }
 
         private static void ValidateUpgrades(
             RunUpgradeCatalog upgrades,
-            ISet<string> gunIds,
-            ISet<string> powerIds,
-            ICollection<string> errors)
+            ContentReferenceSet gunIds,
+            ContentReferenceSet powerIds,
+            ContentValidationReport report)
         {
             if (upgrades == null || upgrades.Definitions.Count == 0)
             {
-                errors.Add("At least one upgrade definition is required.");
+                report.AddError("At least one upgrade definition is required.");
                 return;
             }
 
-            var upgradeIds = new HashSet<string>(StringComparer.Ordinal);
+            ContentValidation.RequireUniqueIds(upgrades.Definitions, "upgrade", definition => definition.Id.Value, report, requireAtLeastOne: true);
             for (int index = 0; index < upgrades.Definitions.Count; index++)
             {
                 RunUpgradeDefinition upgrade = upgrades.Definitions[index];
-                string id = upgrade.Id.Value;
-                if (string.IsNullOrWhiteSpace(id))
-                {
-                    errors.Add($"upgrade definition at index {index} is missing a stable id.");
-                }
-                else if (!upgradeIds.Add(id))
-                {
-                    errors.Add($"Duplicate upgrade id '{id}'.");
-                }
-
-                ValidateUpgradeReferences(upgrade, gunIds, powerIds, errors);
+                ValidateUpgradeReferences(upgrade, gunIds, powerIds, report);
             }
         }
 
         private static void ValidateUpgradeReferences(
             RunUpgradeDefinition upgrade,
-            ISet<string> gunIds,
-            ISet<string> powerIds,
-            ICollection<string> errors)
+            ContentReferenceSet gunIds,
+            ContentReferenceSet powerIds,
+            ContentValidationReport report)
         {
             for (int index = 0; index < upgrade.Effects.Count; index++)
             {
                 RunUpgradeEffectDescriptor effect = upgrade.Effects[index];
                 if (!IsKnownUpgradeTarget(effect.TargetId))
                 {
-                    errors.Add($"Upgrade '{upgrade.Id.Value}' references unknown target '{effect.TargetId.Value}'.");
+                    report.AddError($"Upgrade '{upgrade.Id.Value}' references unknown target '{effect.TargetId.Value}'.");
                     continue;
                 }
 
                 if (effect.TargetId.Equals(BasicMovementFpsGame.RiftLauncherUnlockTargetId) && !gunIds.Contains(BasicMovementFpsGame.RiftLauncherId))
                 {
-                    errors.Add($"Upgrade '{upgrade.Id.Value}' unlocks missing gun '{BasicMovementFpsGame.RiftLauncherId}'.");
+                    report.AddError($"Upgrade '{upgrade.Id.Value}' unlocks missing gun '{BasicMovementFpsGame.RiftLauncherId}'.");
                 }
                 else if (effect.TargetId.Equals(BasicMovementFpsGame.ChainBoltUnlockTargetId) && !powerIds.Contains(BasicMovementFpsGame.ChainBoltId))
                 {
-                    errors.Add($"Upgrade '{upgrade.Id.Value}' unlocks missing power '{BasicMovementFpsGame.ChainBoltId}'.");
+                    report.AddError($"Upgrade '{upgrade.Id.Value}' unlocks missing power '{BasicMovementFpsGame.ChainBoltId}'.");
                 }
                 else if (effect.TargetId.Equals(BasicMovementFpsGame.GroundRiftUnlockTargetId) && !powerIds.Contains(BasicMovementFpsGame.GroundRiftId))
                 {
-                    errors.Add($"Upgrade '{upgrade.Id.Value}' unlocks missing power '{BasicMovementFpsGame.GroundRiftId}'.");
+                    report.AddError($"Upgrade '{upgrade.Id.Value}' unlocks missing power '{BasicMovementFpsGame.GroundRiftId}'.");
                 }
             }
 
@@ -220,7 +180,7 @@ namespace Deucarian.TemplateGameMovementFps.Content
             {
                 if (upgrade.Prerequisites[index].IsEmpty)
                 {
-                    errors.Add($"Upgrade '{upgrade.Id.Value}' has an empty prerequisite reference.");
+                    report.AddError($"Upgrade '{upgrade.Id.Value}' has an empty prerequisite reference.");
                 }
             }
 
@@ -228,38 +188,38 @@ namespace Deucarian.TemplateGameMovementFps.Content
             {
                 if (upgrade.Exclusions[index].IsEmpty)
                 {
-                    errors.Add($"Upgrade '{upgrade.Id.Value}' has an empty exclusion reference.");
+                    report.AddError($"Upgrade '{upgrade.Id.Value}' has an empty exclusion reference.");
                 }
             }
         }
 
         private static void ValidateLoadout(
             MovementFpsStartingLoadoutDefinition loadout,
-            ISet<string> gunIds,
-            ISet<string> powerIds,
-            ICollection<string> errors)
+            ContentReferenceSet gunIds,
+            ContentReferenceSet powerIds,
+            ContentValidationReport report)
         {
             if (loadout == null)
             {
-                errors.Add("Starting loadout is missing.");
+                report.AddError("Starting loadout is missing.");
                 return;
             }
 
-            ValidateReferences(loadout.StartingGunIds, "starting gun", gunIds, errors);
-            ValidateReferences(loadout.StartingPowerIds, "starting power", powerIds, errors);
+            ContentValidation.RequireReferences(loadout.StartingGunIds, "starting gun", gunIds, report, requireAtLeastOne: true);
+            ContentValidation.RequireReferences(loadout.StartingPowerIds, "starting power", powerIds, report, requireAtLeastOne: true);
         }
 
-        private static void ValidateWave(MovementFpsWaveDefinition wave, ISet<string> enemyIds, ICollection<string> errors)
+        private static void ValidateWave(MovementFpsWaveDefinition wave, ContentReferenceSet enemyIds, ContentValidationReport report)
         {
             if (wave == null)
             {
-                errors.Add("Wave definition is missing.");
+                report.AddError("Wave definition is missing.");
                 return;
             }
 
             if (wave.Segments.Count == 0)
             {
-                errors.Add($"Wave '{wave.Id}' must contain at least one segment.");
+                report.AddError($"Wave '{wave.Id}' must contain at least one segment.");
             }
 
             for (int segmentIndex = 0; segmentIndex < wave.Segments.Count; segmentIndex++)
@@ -267,7 +227,7 @@ namespace Deucarian.TemplateGameMovementFps.Content
                 MovementFpsWaveSegmentDefinition segment = wave.Segments[segmentIndex];
                 if (segment.Enemies.Count == 0)
                 {
-                    errors.Add($"Wave '{wave.Id}' segment {segmentIndex} has no weighted enemies.");
+                    report.AddError($"Wave '{wave.Id}' segment {segmentIndex} has no weighted enemies.");
                 }
 
                 for (int enemyIndex = 0; enemyIndex < segment.Enemies.Count; enemyIndex++)
@@ -275,54 +235,20 @@ namespace Deucarian.TemplateGameMovementFps.Content
                     MovementFpsWeightedEnemyDefinition weighted = segment.Enemies[enemyIndex];
                     if (weighted.Weight <= 0f)
                     {
-                        errors.Add($"Wave '{wave.Id}' segment {segmentIndex} enemy {enemyIndex} has non-positive weight.");
+                        report.AddError($"Wave '{wave.Id}' segment {segmentIndex} enemy {enemyIndex} has non-positive weight.");
                     }
 
                     string enemyId = weighted.Enemy.Id;
                     if (string.IsNullOrWhiteSpace(enemyId) || !enemyIds.Contains(enemyId))
                     {
-                        errors.Add($"Wave '{wave.Id}' segment {segmentIndex} references missing enemy '{enemyId}'.");
+                        report.AddError($"Wave '{wave.Id}' segment {segmentIndex} references missing enemy '{enemyId}'.");
                     }
                 }
             }
 
             if (wave.HasMiniBoss && !enemyIds.Contains(wave.MiniBossEnemy.Id))
             {
-                errors.Add($"Wave '{wave.Id}' references missing miniboss enemy '{wave.MiniBossEnemy.Id}'.");
-            }
-        }
-
-        private static void ValidateReferences(
-            IReadOnlyList<string> references,
-            string label,
-            ISet<string> validIds,
-            ICollection<string> errors)
-        {
-            if (references == null || references.Count == 0)
-            {
-                errors.Add($"At least one {label} reference is required.");
-                return;
-            }
-
-            var seen = new HashSet<string>(StringComparer.Ordinal);
-            for (int index = 0; index < references.Count; index++)
-            {
-                string id = references[index];
-                if (string.IsNullOrWhiteSpace(id))
-                {
-                    errors.Add($"{label} reference at index {index} is empty.");
-                    continue;
-                }
-
-                if (!seen.Add(id))
-                {
-                    errors.Add($"Duplicate {label} reference '{id}'.");
-                }
-
-                if (!validIds.Contains(id))
-                {
-                    errors.Add($"{label} reference '{id}' does not exist.");
-                }
+                report.AddError($"Wave '{wave.Id}' references missing miniboss enemy '{wave.MiniBossEnemy.Id}'.");
             }
         }
 
