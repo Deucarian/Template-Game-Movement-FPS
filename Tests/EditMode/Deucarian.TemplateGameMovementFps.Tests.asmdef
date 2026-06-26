@@ -3,7 +3,10 @@
   "rootNamespace": "Deucarian.TemplateGameMovementFps.Tests",
   "references": [
     "Deucarian.TemplateGameMovementFps",
+    "Deucarian.TemplateGameMovementFps.Editor",
     "Deucarian.Combat",
+    "Deucarian.GameContentAuthoring.Editor",
+    "Deucarian.GameplayFoundation",
     "Deucarian.RunUpgrades"
   ],
   "includePlatforms": [

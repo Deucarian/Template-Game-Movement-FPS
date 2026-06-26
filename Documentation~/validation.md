@@ -25,6 +25,12 @@ Phase 2V through 2Y validation targets:
 - PlayMode restart/new-run summary reset
 - PlayMode restart after defeat
 
+## Editor Content Validation
+
+Use `Tools > Deucarian > Templates > Movement FPS > Validate Content` to run the template content validator from the Unity editor.
+
+The menu is editor-only. It formats the existing Movement-FPS local validation report through Game-Content-Authoring report helpers, while gameplay-specific validation rules remain inside this template.
+
 Fresh publishing and Package Registry validation are intentionally out of scope for Phase 2V. This template must not be published or registered until a later publish-readiness gate.
 
 ## Manual Play Smoke

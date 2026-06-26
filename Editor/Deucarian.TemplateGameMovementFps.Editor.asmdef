@@ -1,0 +1,20 @@
+{
+  "name": "Deucarian.TemplateGameMovementFps.Editor",
+  "rootNamespace": "Deucarian.TemplateGameMovementFps.Editor",
+  "references": [
+    "Deucarian.TemplateGameMovementFps",
+    "Deucarian.GameContentAuthoring.Editor",
+    "Deucarian.GameplayFoundation"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}
