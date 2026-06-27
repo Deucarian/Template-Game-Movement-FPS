@@ -13,6 +13,14 @@ namespace Deucarian.TemplateGameMovementFps
 {
     public sealed class MovementFpsTemplateController : MonoBehaviour
     {
+        private const string PresentationRootName = "Movement FPS Presentation";
+        private const string WeaponPulseName = "Movement FPS Weapon Pulse";
+        private const string PowerPulseName = "Movement FPS Power Pulse";
+        private const string EnemyPulseName = "Movement FPS Enemy Pulse";
+        private const string PickupPulseName = "Movement FPS Pickup Pulse";
+        private const string RunPulseName = "Movement FPS Run State Pulse";
+        private const string PresentationAudioName = "Movement FPS Feedback Audio";
+
         [SerializeField]
         private bool buildSampleArenaOnAwake = true;
 
@@ -52,6 +60,22 @@ namespace Deucarian.TemplateGameMovementFps
         private MovementFpsAutoPowerDefinition _orbitPulseDefinition;
         private MovementFpsAutoPowerDefinition _chainBoltDefinition;
         private MovementFpsAutoPowerDefinition _groundRiftDefinition;
+        private Transform _presentationRoot;
+        private ParticleSystem _weaponPulse;
+        private ParticleSystem _powerPulse;
+        private ParticleSystem _enemyPulse;
+        private ParticleSystem _pickupPulse;
+        private ParticleSystem _runPulse;
+        private AudioSource _feedbackAudio;
+        private AudioClip _weaponClip;
+        private AudioClip _projectileClip;
+        private AudioClip _powerClip;
+        private AudioClip _enemyClip;
+        private AudioClip _pickupClip;
+        private AudioClip _runClip;
+        private GUIStyle _hudTitleStyle;
+        private GUIStyle _hudLabelStyle;
+        private GUIStyle _hudSmallStyle;
         private float _elapsedSeconds;
         private bool _draftOpen;
         private bool _defeat;
@@ -151,6 +175,7 @@ namespace Deucarian.TemplateGameMovementFps
                 BuildSampleArena();
             }
 
+            BuildPresentation();
             CreatePlayer();
             StartRun();
         }
@@ -171,6 +196,8 @@ namespace Deucarian.TemplateGameMovementFps
             ApplyWaveTuning();
             _player.ResetPlayer(new Vector3(0f, 1.2f, -8f), Quaternion.identity);
             SpawnEnemy(new Vector3(0f, 1f, 8f));
+            SpawnEnemy(_leapingRunnerDefinition, new Vector3(5f, 1f, 7f));
+            SpawnEnemy(_boneBulwarkDefinition, new Vector3(-5.5f, 1f, 9f));
         }
 
         public void RestartRun()
@@ -205,6 +232,7 @@ namespace Deucarian.TemplateGameMovementFps
             MovementFpsEnemyActor enemy = enemyObject.AddComponent<MovementFpsEnemyActor>();
             enemy.Initialize(definition, this);
             _enemies.Add(enemy);
+            PlayFeedback(_enemyPulse, position, definition.IsMiniBoss ? 42 : 14, definition.IsMiniBoss ? _runClip : _enemyClip);
             return enemy;
         }
 
@@ -229,6 +257,14 @@ namespace Deucarian.TemplateGameMovementFps
                 renderer.material.color = new Color(0.75f, 0.45f, 1f, 1f);
             }
 
+            var trail = projectileObject.AddComponent<TrailRenderer>();
+            trail.time = 0.22f;
+            trail.startWidth = 0.28f;
+            trail.endWidth = 0.02f;
+            trail.material = new Material(Shader.Find("Sprites/Default"));
+            trail.startColor = new Color(0.78f, 0.48f, 1f, 0.95f);
+            trail.endColor = new Color(0.18f, 0.9f, 1f, 0f);
+
             MovementFpsProjectileActor projectile = projectileObject.AddComponent<MovementFpsProjectileActor>();
             projectile.Initialize(
                 owner,
@@ -237,6 +273,7 @@ namespace Deucarian.TemplateGameMovementFps
                 resolvedDirection * Mathf.Max(1f, resolvedSpeed),
                 gun.ProjectileLifetimeSeconds,
                 gun.ProjectileCollisionRadius);
+            PlayFeedback(_weaponPulse, origin + resolvedDirection * 2f, 14, _projectileClip);
             return projectile;
         }
 
@@ -251,6 +288,7 @@ namespace Deucarian.TemplateGameMovementFps
             bool miniBoss = enemy.IsMiniBoss;
             _runSummaryTracker.RecordKill(miniBoss);
             SpawnExperiencePickup(enemy.transform.position + Vector3.up * 0.4f, enemy.ExperienceDrop);
+            PlayFeedback(_enemyPulse, enemy.transform.position, miniBoss ? 54 : 22, _enemyClip);
             if (miniBoss)
             {
                 _miniBossDefeated = true;
@@ -334,6 +372,7 @@ namespace Deucarian.TemplateGameMovementFps
             _draftOpen = false;
             _runState = MovementFpsRunState.Defeated;
             _runSummaryTracker.Complete(MovementFpsRunOutcome.Defeat);
+            PlayFeedback(_runPulse, _player == null ? Vector3.zero : _player.transform.position, 38, _runClip);
         }
 
         public void CollectExperience(int amount)
@@ -347,6 +386,7 @@ namespace Deucarian.TemplateGameMovementFps
             _progression.GainExperience(amount);
             _draftOpen = _progression.HasDraft;
             _runState = _draftOpen ? MovementFpsRunState.Draft : MovementFpsRunState.Running;
+            PlayFeedback(_pickupPulse, _player == null ? Vector3.zero : _player.transform.position, _draftOpen ? 34 : 12, _draftOpen ? _runClip : _pickupClip);
         }
 
         public RunUpgradeSelectionResult ChooseDraft(int index)
@@ -356,6 +396,7 @@ namespace Deucarian.TemplateGameMovementFps
             {
                 ApplyRuntimeContentForUpgrade(result.Id);
                 _runSummaryTracker.RecordUpgrade(result.Id.Value);
+                PlayFeedback(_runPulse, _player == null ? Vector3.zero : _player.transform.position, 32, _runClip);
             }
 
             _draftOpen = _progression.HasDraft;
@@ -555,6 +596,7 @@ namespace Deucarian.TemplateGameMovementFps
             _draftOpen = false;
             _runState = MovementFpsRunState.Victory;
             _runSummaryTracker.Complete(MovementFpsRunOutcome.Victory);
+            PlayFeedback(_runPulse, _player == null ? Vector3.zero : _player.transform.position, 58, _runClip);
         }
 
         private void CreatePlayer()
@@ -573,6 +615,7 @@ namespace Deucarian.TemplateGameMovementFps
             cameraObject.transform.SetParent(playerObject.transform, false);
             cameraObject.transform.localPosition = new Vector3(0f, 0.62f, 0f);
             Camera camera = cameraObject.AddComponent<Camera>();
+            cameraObject.AddComponent<AudioListener>();
             camera.nearClipPlane = 0.03f;
             camera.fieldOfView = 76f;
 
@@ -580,8 +623,8 @@ namespace Deucarian.TemplateGameMovementFps
             _player.Initialize(
                 this,
                 _playerDefinition,
-                new[] { _carbineDefinition },
-                new[] { _orbitPulseDefinition });
+                new[] { _carbineDefinition, _riftLauncherDefinition },
+                new[] { _orbitPulseDefinition, _chainBoltDefinition, _groundRiftDefinition });
         }
 
         private void ApplyRuntimeContentForUpgrade(RunUpgradeId id)
@@ -600,13 +643,110 @@ namespace Deucarian.TemplateGameMovementFps
             }
         }
 
+        internal void PlayWeaponFeedback(Vector3 origin, Vector3 direction, MovementFpsGunKind kind)
+        {
+            Vector3 resolvedDirection = direction.sqrMagnitude <= 0.0001f ? Vector3.forward : direction.normalized;
+            PlayFeedback(_weaponPulse, origin + resolvedDirection * (kind == MovementFpsGunKind.Projectile ? 2f : 5f), kind == MovementFpsGunKind.Projectile ? 14 : 8, kind == MovementFpsGunKind.Projectile ? _projectileClip : _weaponClip);
+        }
+
+        internal void PlayPowerFeedback(Vector3 position, MovementFpsAutoPowerKind kind)
+        {
+            int count = kind == MovementFpsAutoPowerKind.ChainBolt ? 24 : kind == MovementFpsAutoPowerKind.GroundRift ? 34 : 18;
+            PlayFeedback(_powerPulse, position, count, _powerClip);
+        }
+
+        private void BuildPresentation()
+        {
+            GameObject root = new GameObject(PresentationRootName);
+            root.transform.SetParent(_runtimeRoot, false);
+            _presentationRoot = root.transform;
+            _weaponPulse = CreatePulse(WeaponPulseName, new Color(0.78f, 0.48f, 1f), 0.16f, 3.2f, 0.32f);
+            _powerPulse = CreatePulse(PowerPulseName, new Color(0.2f, 0.86f, 1f), 0.22f, 2.8f, 0.45f);
+            _enemyPulse = CreatePulse(EnemyPulseName, new Color(1f, 0.25f, 0.28f), 0.24f, 3.0f, 0.48f);
+            _pickupPulse = CreatePulse(PickupPulseName, new Color(0.4f, 1f, 0.55f), 0.14f, 2.2f, 0.35f);
+            _runPulse = CreatePulse(RunPulseName, new Color(1f, 0.82f, 0.24f), 0.32f, 3.6f, 0.7f);
+
+            GameObject audioObject = new GameObject(PresentationAudioName);
+            audioObject.transform.SetParent(_presentationRoot, false);
+            _feedbackAudio = audioObject.AddComponent<AudioSource>();
+            _feedbackAudio.playOnAwake = false;
+            _feedbackAudio.spatialBlend = 0f;
+            _feedbackAudio.volume = 0.28f;
+            _weaponClip = CreateTone("movement-fps-carbine", 620f, 0.055f, 0.16f);
+            _projectileClip = CreateTone("movement-fps-launcher", 210f, 0.13f, 0.22f);
+            _powerClip = CreateTone("movement-fps-power", 860f, 0.12f, 0.18f);
+            _enemyClip = CreateTone("movement-fps-enemy", 330f, 0.08f, 0.16f);
+            _pickupClip = CreateTone("movement-fps-pickup", 1040f, 0.07f, 0.15f);
+            _runClip = CreateTone("movement-fps-run-state", 120f, 0.24f, 0.22f);
+        }
+
+        private ParticleSystem CreatePulse(string name, Color color, float startSize, float startSpeed, float lifetime)
+        {
+            GameObject instance = new GameObject(name);
+            instance.transform.SetParent(_presentationRoot, false);
+            ParticleSystem particles = instance.AddComponent<ParticleSystem>();
+            ParticleSystem.MainModule main = particles.main;
+            main.loop = false;
+            main.playOnAwake = false;
+            main.startLifetime = lifetime;
+            main.startSpeed = startSpeed;
+            main.startSize = startSize;
+            main.startColor = color;
+            main.maxParticles = 120;
+            ParticleSystem.EmissionModule emission = particles.emission;
+            emission.enabled = false;
+            ParticleSystem.ShapeModule shape = particles.shape;
+            shape.shapeType = ParticleSystemShapeType.Sphere;
+            shape.radius = 0.35f;
+            return particles;
+        }
+
+        private void PlayFeedback(ParticleSystem particles, Vector3 position, int count, AudioClip clip)
+        {
+            if (particles != null)
+            {
+                particles.transform.position = position;
+                particles.Emit(Mathf.Max(1, count));
+            }
+
+            if (_feedbackAudio != null && clip != null)
+            {
+                _feedbackAudio.PlayOneShot(clip);
+            }
+        }
+
+        private static AudioClip CreateTone(string name, float frequency, float durationSeconds, float volume)
+        {
+            const int sampleRate = 22050;
+            int sampleCount = Mathf.Max(1, Mathf.CeilToInt(sampleRate * durationSeconds));
+            float[] samples = new float[sampleCount];
+            for (int i = 0; i < sampleCount; i++)
+            {
+                float t = i / (float)sampleRate;
+                float fade = Mathf.Clamp01(1f - i / (float)sampleCount);
+                samples[i] = Mathf.Sin(Mathf.PI * 2f * frequency * t) * volume * fade;
+            }
+
+            AudioClip clip = AudioClip.Create(name, sampleCount, 1, sampleRate, false);
+            clip.SetData(samples, 0);
+            return clip;
+        }
+
         private void BuildSampleArena()
         {
             CreateSolid("Arena Floor", new Vector3(0f, -0.55f, 0f), new Vector3(42f, 1f, 42f), new Color(0.24f, 0.25f, 0.27f, 1f));
             CreateSolid("Left Wallrun Wall", new Vector3(-7f, 2f, 0f), new Vector3(0.45f, 4f, 22f), new Color(0.16f, 0.22f, 0.31f, 1f));
             CreateSolid("Right Wallrun Wall", new Vector3(7f, 2f, 0f), new Vector3(0.45f, 4f, 22f), new Color(0.16f, 0.22f, 0.31f, 1f));
+            CreateSolid("Forward Wallrun Gate Left", new Vector3(-3.2f, 2.4f, 13f), new Vector3(0.42f, 4.8f, 8f), new Color(0.18f, 0.2f, 0.34f, 1f));
+            CreateSolid("Forward Wallrun Gate Right", new Vector3(3.2f, 2.4f, 13f), new Vector3(0.42f, 4.8f, 8f), new Color(0.18f, 0.2f, 0.34f, 1f));
+            CreateSolid("Back Slide Ramp", new Vector3(0f, 0.35f, -14f), new Vector3(6.5f, 0.7f, 5.4f), Quaternion.Euler(-12f, 0f, 0f), new Color(0.3f, 0.28f, 0.2f, 1f));
+            CreateSolid("Side Transfer Ramp Left", new Vector3(-10.5f, 0.45f, 4f), new Vector3(5.6f, 0.75f, 3.2f), Quaternion.Euler(0f, 0f, -10f), new Color(0.28f, 0.25f, 0.18f, 1f));
+            CreateSolid("Side Transfer Ramp Right", new Vector3(10.5f, 0.45f, 4f), new Vector3(5.6f, 0.75f, 3.2f), Quaternion.Euler(0f, 0f, 10f), new Color(0.28f, 0.25f, 0.18f, 1f));
             CreateSolid("Low Flow Vault", new Vector3(0f, 0.55f, -1f), new Vector3(2.2f, 1.1f, 0.7f), new Color(0.32f, 0.28f, 0.18f, 1f));
             CreateSolid("Tall Safety Mantle", new Vector3(3.8f, 1.05f, 3.5f), new Vector3(2.2f, 2.1f, 0.7f), new Color(0.28f, 0.24f, 0.34f, 1f));
+            CreateSolid("Enemy Spawn Read North", new Vector3(0f, 0.05f, 17.5f), new Vector3(8f, 0.1f, 0.35f), new Color(0.68f, 0.16f, 0.2f, 1f));
+            CreateSolid("Enemy Spawn Read East", new Vector3(17.5f, 0.05f, 0f), new Vector3(0.35f, 0.1f, 8f), new Color(0.68f, 0.16f, 0.2f, 1f));
+            CreateSolid("Enemy Spawn Read West", new Vector3(-17.5f, 0.05f, 0f), new Vector3(0.35f, 0.1f, 8f), new Color(0.68f, 0.16f, 0.2f, 1f));
 
             GameObject lightObject = new GameObject("Arena Directional Light");
             lightObject.transform.SetParent(_runtimeRoot, false);
@@ -618,10 +758,15 @@ namespace Deucarian.TemplateGameMovementFps
 
         private void CreateSolid(string name, Vector3 position, Vector3 scale, Color color)
         {
+            CreateSolid(name, position, scale, Quaternion.identity, color);
+        }
+
+        private void CreateSolid(string name, Vector3 position, Vector3 scale, Quaternion rotation, Color color)
+        {
             GameObject solid = GameObject.CreatePrimitive(PrimitiveType.Cube);
             solid.name = name;
             solid.transform.SetParent(_runtimeRoot, false);
-            solid.transform.position = position;
+            solid.transform.SetPositionAndRotation(position, rotation);
             solid.transform.localScale = scale;
             Renderer renderer = solid.GetComponent<Renderer>();
             if (renderer != null)
@@ -639,6 +784,7 @@ namespace Deucarian.TemplateGameMovementFps
             pickupObject.transform.localScale = Vector3.one * 0.38f;
             MovementFpsPickupActor pickup = pickupObject.AddComponent<MovementFpsPickupActor>();
             pickup.Initialize(this, amount);
+            PlayFeedback(_pickupPulse, position, 12, _pickupClip);
         }
 
         private void ClearRuntimeCombatObjects()
@@ -667,6 +813,60 @@ namespace Deucarian.TemplateGameMovementFps
             return Keyboard.current != null && Keyboard.current[key].wasPressedThisFrame;
         }
 
+        private void EnsureHudStyles()
+        {
+            if (_hudTitleStyle != null)
+            {
+                return;
+            }
+
+            _hudTitleStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 17,
+                fontStyle = FontStyle.Bold,
+                normal = { textColor = new Color(0.84f, 0.94f, 1f) }
+            };
+            _hudLabelStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 12,
+                normal = { textColor = Color.white }
+            };
+            _hudSmallStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 11,
+                wordWrap = true,
+                normal = { textColor = new Color(0.78f, 0.88f, 0.95f) }
+            };
+        }
+
+        private void DrawHudBar(string label, float value, Color fill)
+        {
+            Rect rect = GUILayoutUtility.GetRect(392f, 18f);
+            GUI.Box(rect, GUIContent.none);
+            Rect fillRect = new Rect(rect.x + 2f, rect.y + 2f, Mathf.Max(0f, rect.width - 4f) * Mathf.Clamp01(value), rect.height - 4f);
+            Color oldColor = GUI.color;
+            GUI.color = fill;
+            GUI.DrawTexture(fillRect, Texture2D.whiteTexture);
+            GUI.color = oldColor;
+            GUI.Label(rect, label + " " + Mathf.RoundToInt(Mathf.Clamp01(value) * 100f).ToString() + "%", _hudSmallStyle);
+        }
+
+        private string ResolveLoadoutLabel()
+        {
+            if (_player == null)
+            {
+                return "none";
+            }
+
+            return _player.Guns.Count.ToString() + " guns / " + _player.AutoPowers.Count.ToString() + " powers";
+        }
+
+        private static string FormatTime(float seconds)
+        {
+            int total = Mathf.Max(0, Mathf.FloorToInt(seconds));
+            return (total / 60).ToString("00") + ":" + (total % 60).ToString("00");
+        }
+
         private void OnGUI()
         {
             if (_player == null || _progression == null)
@@ -674,40 +874,45 @@ namespace Deucarian.TemplateGameMovementFps
                 return;
             }
 
-            GUILayout.BeginArea(new Rect(16f, 16f, 520f, 280f));
-            GUILayout.Label("Movement FPS Template");
-            GUILayout.Label($"HP {_player.CurrentHealth:0}/{_player.MaximumHealth:0}  Level {_progression.Level}  XP {_progression.CurrentExperience}/{_progression.RequiredExperience}");
-            GUILayout.Label($"Run {_elapsedSeconds:0}s  State {_runState}  Enemies {_enemies.Count}/{CurrentSpawnSnapshot.MaxAlive}");
+            EnsureHudStyles();
+            GUILayout.BeginArea(new Rect(16f, 16f, 430f, 276f), GUI.skin.box);
+            GUILayout.Label("Movement FPS Template", _hudTitleStyle);
+            DrawHudBar("Health", _player.MaximumHealth <= 0d ? 0f : (float)(_player.CurrentHealth / _player.MaximumHealth), new Color(0.9f, 0.24f, 0.22f));
+            DrawHudBar("XP", _progression.CurrentExperience / (float)_progression.RequiredExperience, new Color(0.24f, 0.82f, 1f));
+            DrawHudBar("Run", Mathf.Clamp01(_elapsedSeconds / Mathf.Max(1f, _waveDefinition.VictoryTimeSeconds)), new Color(0.78f, 0.48f, 1f));
+            GUILayout.Label($"Level {_progression.Level}   Time {FormatTime(_elapsedSeconds)}   State {_runState}", _hudLabelStyle);
+            GUILayout.Label($"Enemies {_enemies.Count}/{CurrentSpawnSnapshot.MaxAlive}   Wave batch {CurrentSpawnSnapshot.BatchSize}", _hudLabelStyle);
             MovementFpsRunSummary summary = CurrentRunSummary;
-            GUILayout.Label($"Kills {summary.KillCount}  XP Gained {summary.ExperienceGained}  Upgrades {summary.UpgradesChosen.Count}");
-            GUILayout.Label($"State {_player.Motor.State}  Speed {Vector3.ProjectOnPlane(_player.Motor.Velocity, Vector3.up).magnitude:0.0}");
+            GUILayout.Label($"Kills {summary.KillCount}   XP gained {summary.ExperienceGained}   Upgrades {summary.UpgradesChosen.Count}", _hudLabelStyle);
+            GUILayout.Label($"Move {_player.Motor.State}   Speed {Vector3.ProjectOnPlane(_player.Motor.Velocity, Vector3.up).magnitude:0.0}", _hudLabelStyle);
+            GUILayout.Label("Loadout: " + ResolveLoadoutLabel(), _hudSmallStyle);
             if (_player.CurrentGun != null)
             {
                 MovementFpsGunRuntimeState gun = _player.CurrentGun;
-                GUILayout.Label($"{gun.Definition.DisplayName}  Ammo {gun.Ammo}/{gun.Definition.MagazineSize}{(gun.Reloading ? "  Reloading" : string.Empty)}");
+                GUILayout.Label($"{gun.Definition.DisplayName}  Ammo {gun.Ammo}/{gun.Definition.MagazineSize}{(gun.Reloading ? "  Reloading" : string.Empty)}", _hudLabelStyle);
             }
 
             if (_draftOpen)
             {
-                GUILayout.Label("Choose upgrade: 1 / 2 / 3");
+                GUILayout.Label("Choose upgrade: 1 / 2 / 3", _hudLabelStyle);
                 for (int index = 0; index < _progression.CurrentDraft.Count; index++)
                 {
-                    GUILayout.Label($"{index + 1}. {_progression.CurrentDraft[index].Id.Value}");
+                    GUILayout.Label($"{index + 1}. {_progression.CurrentDraft[index].Id.Value}", _hudSmallStyle);
                 }
             }
             else if (_defeat)
             {
-                GUILayout.Label("Defeated - press R to restart");
-                GUILayout.Label($"Summary: survived {summary.ElapsedSeconds:0}s, kills {summary.KillCount}, XP {summary.ExperienceGained}");
+                GUILayout.Label("Defeated - press R to restart", _hudLabelStyle);
+                GUILayout.Label($"Summary: survived {summary.ElapsedSeconds:0}s, kills {summary.KillCount}, XP {summary.ExperienceGained}", _hudSmallStyle);
             }
             else if (_victory)
             {
-                GUILayout.Label("Victory - press R to restart");
-                GUILayout.Label($"Summary: cleared in {summary.ElapsedSeconds:0}s, kills {summary.KillCount}, rewards {summary.Rewards.Count}");
+                GUILayout.Label("Victory - press R to restart", _hudLabelStyle);
+                GUILayout.Label($"Summary: cleared in {summary.ElapsedSeconds:0}s, kills {summary.KillCount}, rewards {summary.Rewards.Count}", _hudSmallStyle);
             }
             else
             {
-                GUILayout.Label("WASD move, Shift sprint, Ctrl/C slide, Space jump, mouse fire/look, Q swaps guns");
+                GUILayout.Label("WASD move, Shift sprint, Ctrl/C slide, Space jump, mouse fire/look, Q swap guns", _hudSmallStyle);
             }
 
             GUILayout.EndArea();

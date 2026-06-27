@@ -23,7 +23,7 @@ Import the `Basic Movement FPS Game` sample, then open:
 
 The scene contains a tiny bootstrap object. At runtime it creates the sample arena, player controller, camera, starter enemy, XP pickup flow, and draft UI.
 
-The default sample run escalates toward a Choir Ogre miniboss at 270 seconds. Killing that miniboss triggers victory; player death enters a defeat state that can restart with R.
+The default sample run starts with the carbine, rift launcher, orbit pulse, chain bolt, and ground rift online so the first Play session demonstrates visible gun and power feedback. It escalates toward a Choir Ogre miniboss at 115 seconds. Killing that miniboss triggers victory; player death enters a defeat state that can restart with R.
 
 Victory and defeat display summary data. Defeating the Choir Ogre records a local run reward marker; it is intentionally not persisted.
 

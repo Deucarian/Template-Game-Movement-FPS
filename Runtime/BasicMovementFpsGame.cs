@@ -31,7 +31,7 @@ namespace Deucarian.TemplateGameMovementFps
         public static readonly RunUpgradeTargetId ChainBoltUnlockTargetId = new RunUpgradeTargetId("unlock.power.chain-bolt");
         public static readonly RunUpgradeTargetId GroundRiftUnlockTargetId = new RunUpgradeTargetId("unlock.power.ground-rift");
 
-        public const int FirstLevelExperienceRequirement = 10;
+        public const int FirstLevelExperienceRequirement = 8;
         public const int DraftChoiceCount = 3;
         public const string CarbineId = "weapon.aether-carbine";
         public const string RiftLauncherId = "gun.rift-launcher";
@@ -164,7 +164,7 @@ namespace Deucarian.TemplateGameMovementFps
             return new MovementFpsEnemyDefinition(
                 id: ChoirOgreId,
                 displayName: "Choir Ogre",
-                maximumHealth: 850d,
+                maximumHealth: 520d,
                 moveSpeed: 3.15f,
                 contactDamage: 24d,
                 experienceDrop: 32,
@@ -182,33 +182,33 @@ namespace Deucarian.TemplateGameMovementFps
 
             return new MovementFpsWaveDefinition(
                 id: "wave.prototype-five-minute",
-                displayName: "Prototype Five-Minute Horde",
+                displayName: "Prototype Two-Minute Horde",
                 segments: new[]
                 {
                     new MovementFpsWaveSegmentDefinition(
                         startTimeSeconds: 0f,
-                        spawnIntervalSeconds: 1.25f,
-                        batchSize: 2,
-                        maxAlive: 24,
+                        spawnIntervalSeconds: 0.9f,
+                        batchSize: 3,
+                        maxAlive: 28,
                         enemies: new[]
                         {
                             new MovementFpsWeightedEnemyDefinition(husk, 1f)
                         }),
                     new MovementFpsWaveSegmentDefinition(
-                        startTimeSeconds: 75f,
-                        spawnIntervalSeconds: 0.95f,
+                        startTimeSeconds: 30f,
+                        spawnIntervalSeconds: 0.72f,
                         batchSize: 3,
-                        maxAlive: 34,
+                        maxAlive: 38,
                         enemies: new[]
                         {
                             new MovementFpsWeightedEnemyDefinition(husk, 0.75f),
                             new MovementFpsWeightedEnemyDefinition(runner, 0.25f)
                         }),
                     new MovementFpsWaveSegmentDefinition(
-                        startTimeSeconds: 170f,
-                        spawnIntervalSeconds: 0.75f,
+                        startTimeSeconds: 75f,
+                        spawnIntervalSeconds: 0.58f,
                         batchSize: 4,
-                        maxAlive: 48,
+                        maxAlive: 52,
                         enemies: new[]
                         {
                             new MovementFpsWeightedEnemyDefinition(husk, 0.58f),
@@ -217,8 +217,8 @@ namespace Deucarian.TemplateGameMovementFps
                         })
                 },
                 miniBossEnemy: ogre,
-                miniBossSpawnTimeSeconds: 270f,
-                victoryTimeSeconds: 300f,
+                miniBossSpawnTimeSeconds: 115f,
+                victoryTimeSeconds: 135f,
                 escalationPerMinute: 1.16f);
         }
 
@@ -233,8 +233,8 @@ namespace Deucarian.TemplateGameMovementFps
         {
             return new MovementFpsStartingLoadoutDefinition(
                 id: "loadout.wallrunner-default",
-                startingGunIds: new[] { CarbineId },
-                startingPowerIds: new[] { OrbitPulseId });
+                startingGunIds: new[] { CarbineId, RiftLauncherId },
+                startingPowerIds: new[] { OrbitPulseId, ChainBoltId, GroundRiftId });
         }
 
         public static MovementFpsContentLibrary CreateContentLibrary()
