@@ -4,6 +4,7 @@ using Deucarian.TemplateGameMovementFps.Actors;
 using Deucarian.TemplateGameMovementFps.Combat;
 using Deucarian.TemplateGameMovementFps.Movement;
 using Deucarian.TemplateGameMovementFps.Run;
+using Deucarian.RunUpgrades;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -13,6 +14,14 @@ namespace Deucarian.TemplateGameMovementFps.PlayModeTests
 {
     public sealed class MovementFpsTemplatePlayModeTests
     {
+        private const string PresentationRootName = "Movement FPS Presentation";
+        private const string WeaponPulseName = "Movement FPS Weapon Pulse";
+        private const string PowerPulseName = "Movement FPS Power Pulse";
+        private const string EnemyPulseName = "Movement FPS Enemy Pulse";
+        private const string PickupPulseName = "Movement FPS Pickup Pulse";
+        private const string RunPulseName = "Movement FPS Run State Pulse";
+        private const string PresentationAudioName = "Movement FPS Feedback Audio";
+
         [UnityTest]
         public IEnumerator TemplateBootsWithPlayerArenaAndEnemy()
         {
@@ -24,6 +33,33 @@ namespace Deucarian.TemplateGameMovementFps.PlayModeTests
             Assert.That(controller.EnemyCount, Is.GreaterThanOrEqualTo(1));
             Assert.IsFalse(controller.DraftOpen);
             Assert.IsFalse(controller.Defeated);
+
+            Object.Destroy(controller.gameObject);
+        }
+
+        [UnityTest]
+        public IEnumerator TemplateCreatesPresentationFeedbackAndFullStarterLoadout()
+        {
+            MovementFpsTemplateController controller = CreateController();
+            yield return null;
+
+            Assert.IsNotNull(GameObject.Find(PresentationRootName));
+            Assert.IsNotNull(GameObject.Find(WeaponPulseName));
+            Assert.IsNotNull(GameObject.Find(PowerPulseName));
+            Assert.IsNotNull(GameObject.Find(EnemyPulseName));
+            Assert.IsNotNull(GameObject.Find(PickupPulseName));
+            Assert.IsNotNull(GameObject.Find(RunPulseName));
+            Assert.IsNotNull(GameObject.Find(PresentationAudioName));
+            Assert.That(Object.FindObjectsByType<ParticleSystem>(FindObjectsSortMode.None).Length, Is.GreaterThanOrEqualTo(5));
+            Assert.That(Object.FindObjectsByType<AudioSource>(FindObjectsSortMode.None).Length, Is.GreaterThanOrEqualTo(1));
+            Assert.That(controller.Player.Guns.Count, Is.GreaterThanOrEqualTo(2));
+            Assert.That(controller.Player.AutoPowers.Count, Is.GreaterThanOrEqualTo(3));
+
+            MovementFpsEnemyActor enemy = controller.SpawnEnemyForTest(controller.Player.transform.position + Vector3.forward * 5f);
+            Assert.IsNotNull(controller.FireProjectileAtEnemyForTest(enemy));
+            yield return null;
+
+            Assert.That(Object.FindObjectsByType<TrailRenderer>(FindObjectsSortMode.None).Length, Is.GreaterThanOrEqualTo(1));
 
             Object.Destroy(controller.gameObject);
         }
@@ -107,13 +143,14 @@ namespace Deucarian.TemplateGameMovementFps.PlayModeTests
             MovementFpsTemplateController controller = CreateController();
             yield return null;
 
+            int startingEnemies = controller.EnemyCount;
             MovementFpsEnemyActor enemy = controller.SpawnEnemyForTest(controller.Player.transform.position + Vector3.forward * 4f);
             controller.FireAtEnemyForTest(enemy);
             controller.FireAtEnemyForTest(enemy);
             yield return null;
 
             Assert.IsFalse(enemy != null && enemy.IsAlive);
-            Assert.That(controller.EnemyCount, Is.LessThanOrEqualTo(1));
+            Assert.That(controller.EnemyCount, Is.LessThanOrEqualTo(startingEnemies));
 
             Object.Destroy(controller.gameObject);
         }
@@ -231,10 +268,15 @@ namespace Deucarian.TemplateGameMovementFps.PlayModeTests
             double previousPickup = controller.Progression.PickupRadiusBonus;
             int previousGunCount = controller.Player.Guns.Count;
             int previousPowerCount = controller.Player.AutoPowers.Count;
-            Assert.IsTrue(controller.ChooseDraftForTest(0).Succeeded);
+            RunUpgradeSelectionResult result = controller.ChooseDraftForTest(0);
+            Assert.IsTrue(result.Succeeded);
 
             Assert.IsFalse(controller.DraftOpen);
             Assert.AreEqual(1, controller.CurrentRunSummary.UpgradesChosen.Count);
+            bool starterUnlockWasAlreadyOnline =
+                result.Id.Equals(BasicMovementFpsGame.RiftLauncherUnlockUpgradeId) ||
+                result.Id.Equals(BasicMovementFpsGame.ChainBoltUnlockUpgradeId) ||
+                result.Id.Equals(BasicMovementFpsGame.GroundRiftUnlockUpgradeId);
             Assert.IsTrue(
                 controller.Progression.GunDamageBonus > previousDamage ||
                 controller.Progression.GunCadenceMultiplier > previousCadence ||
@@ -242,7 +284,8 @@ namespace Deucarian.TemplateGameMovementFps.PlayModeTests
                 controller.Progression.ProjectileSpeedMultiplier > 0d ||
                 controller.Progression.AutoPowerDamageMultiplier > 0d ||
                 controller.Player.Guns.Count > previousGunCount ||
-                controller.Player.AutoPowers.Count > previousPowerCount);
+                controller.Player.AutoPowers.Count > previousPowerCount ||
+                starterUnlockWasAlreadyOnline);
 
             Object.Destroy(controller.gameObject);
         }
@@ -271,7 +314,7 @@ namespace Deucarian.TemplateGameMovementFps.PlayModeTests
             MovementFpsTemplateController controller = CreateController();
             yield return null;
 
-            controller.TickRunForTest(270.1f);
+            controller.TickRunForTest(115.1f);
             yield return null;
 
             MovementFpsEnemyActor miniboss = null;

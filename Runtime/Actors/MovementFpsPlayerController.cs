@@ -342,10 +342,12 @@ namespace Deucarian.TemplateGameMovementFps.Actors
             if (definition.Kind == MovementFpsGunKind.Projectile)
             {
                 FireProjectile(definition, origin, direction);
+                _session.PlayWeaponFeedback(origin, direction, definition.Kind);
                 return;
             }
 
             FireHitscan(definition, origin, direction);
+            _session.PlayWeaponFeedback(origin, direction, definition.Kind);
         }
 
         private void FireHitscan(MovementFpsGunDefinition definition, Vector3 origin, Vector3 direction)
@@ -422,6 +424,7 @@ namespace Deucarian.TemplateGameMovementFps.Actors
             {
                 case MovementFpsAutoPowerKind.OrbitPulse:
                     _session.DamageEnemiesInRadius(transform.position, radius, damage, definition.DamageType);
+                    _session.PlayPowerFeedback(transform.position, definition.Kind);
                     break;
                 case MovementFpsAutoPowerKind.ChainBolt:
                     IReadOnlyList<MovementFpsEnemyActor> targets = _session.GetNearestEnemies(transform.position, definition.Range, definition.TargetCount);
@@ -430,11 +433,13 @@ namespace Deucarian.TemplateGameMovementFps.Actors
                         targets[index].ApplyDamage(damage, new CombatantId("combatant.player"), definition.DamageType);
                     }
 
+                    _session.PlayPowerFeedback(transform.position + transform.forward * 3f, definition.Kind);
                     break;
                 case MovementFpsAutoPowerKind.GroundRift:
                     IReadOnlyList<MovementFpsEnemyActor> riftTargets = _session.GetNearestEnemies(transform.position, definition.Range, 1);
                     Vector3 center = riftTargets.Count > 0 ? riftTargets[0].transform.position : transform.position + transform.forward * 8f;
                     _session.DamageEnemiesInRadius(center, radius, damage, definition.DamageType);
+                    _session.PlayPowerFeedback(center, definition.Kind);
                     break;
             }
         }

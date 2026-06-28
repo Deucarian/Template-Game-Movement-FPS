@@ -6,10 +6,13 @@
   "startingLoadout": {
     "id": "loadout.wallrunner-default",
     "guns": [
-      "weapon.aether-carbine"
+      "weapon.aether-carbine",
+      "gun.rift-launcher"
     ],
     "autoPowers": [
-      "power.orbit-pulse"
+      "power.orbit-pulse",
+      "power.chain-bolt",
+      "power.ground-rift"
     ]
   },
   "weapons": [
@@ -89,7 +92,7 @@
     {
       "id": "enemy.choir-ogre",
       "displayName": "Choir Ogre",
-      "maximumHealth": 850,
+      "maximumHealth": 520,
       "moveSpeed": 3.15,
       "contactDamage": 24,
       "experienceDrop": 32,
@@ -99,17 +102,17 @@
   ],
   "wave": {
     "id": "wave.prototype-five-minute",
-    "displayName": "Prototype Five-Minute Horde",
+    "displayName": "Prototype Two-Minute Horde",
     "escalationPerMinute": 1.16,
     "miniBossEnemy": "enemy.choir-ogre",
-    "miniBossSpawnTimeSeconds": 270,
-    "victoryTimeSeconds": 300,
+    "miniBossSpawnTimeSeconds": 115,
+    "victoryTimeSeconds": 135,
     "segments": [
       {
         "startTimeSeconds": 0,
-        "spawnIntervalSeconds": 1.25,
-        "batchSize": 2,
-        "maxAlive": 24,
+        "spawnIntervalSeconds": 0.9,
+        "batchSize": 3,
+        "maxAlive": 28,
         "enemies": [
           {
             "enemy": "enemy.husk-thrall",
@@ -118,10 +121,10 @@
         ]
       },
       {
-        "startTimeSeconds": 75,
-        "spawnIntervalSeconds": 0.95,
+        "startTimeSeconds": 30,
+        "spawnIntervalSeconds": 0.72,
         "batchSize": 3,
-        "maxAlive": 34,
+        "maxAlive": 38,
         "enemies": [
           {
             "enemy": "enemy.husk-thrall",
@@ -134,10 +137,10 @@
         ]
       },
       {
-        "startTimeSeconds": 170,
-        "spawnIntervalSeconds": 0.75,
+        "startTimeSeconds": 75,
+        "spawnIntervalSeconds": 0.58,
         "batchSize": 4,
-        "maxAlive": 48,
+        "maxAlive": 52,
         "enemies": [
           {
             "enemy": "enemy.husk-thrall",

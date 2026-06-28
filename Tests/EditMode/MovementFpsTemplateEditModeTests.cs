@@ -53,8 +53,8 @@ namespace Deucarian.TemplateGameMovementFps.Tests
             Assert.IsTrue(miniBoss.IsMiniBoss);
             Assert.AreEqual("wave.prototype-five-minute", wave.Id);
             Assert.AreEqual(3, wave.Segments.Count);
-            Assert.AreEqual(270f, wave.MiniBossSpawnTimeSeconds);
-            Assert.AreEqual(300f, wave.VictoryTimeSeconds);
+            Assert.AreEqual(115f, wave.MiniBossSpawnTimeSeconds);
+            Assert.AreEqual(135f, wave.VictoryTimeSeconds);
             Assert.AreEqual(100d, player.MaximumHealth);
             Assert.AreEqual(4.2f, player.PickupRadius);
             Assert.AreEqual(8, upgrades.Definitions.Count);
@@ -122,13 +122,13 @@ namespace Deucarian.TemplateGameMovementFps.Tests
             MovementFpsWaveSpawnSnapshot mid = wave.ResolveSpawnSnapshot(80f, 1f);
             MovementFpsWaveSpawnSnapshot late = wave.ResolveSpawnSnapshot(190f, 1f);
 
-            Assert.AreEqual(1.25f, start.SpawnIntervalSeconds, 0.001f);
-            Assert.AreEqual(2, start.BatchSize);
-            Assert.AreEqual(24, start.MaxAlive);
-            Assert.That(mid.SpawnIntervalSeconds, Is.LessThan(0.95f));
+            Assert.AreEqual(0.9f, start.SpawnIntervalSeconds, 0.001f);
+            Assert.AreEqual(3, start.BatchSize);
+            Assert.AreEqual(28, start.MaxAlive);
+            Assert.That(mid.SpawnIntervalSeconds, Is.LessThan(0.72f));
             Assert.That(mid.BatchSize, Is.GreaterThanOrEqualTo(3));
-            Assert.That(late.SpawnIntervalSeconds, Is.LessThan(0.75f));
-            Assert.That(late.MaxAlive, Is.GreaterThan(48));
+            Assert.That(late.SpawnIntervalSeconds, Is.LessThan(0.58f));
+            Assert.That(late.MaxAlive, Is.GreaterThan(52));
         }
 
         [Test]
@@ -143,7 +143,7 @@ namespace Deucarian.TemplateGameMovementFps.Tests
 
             MovementFpsWaveSpawnSnapshot snapshot = director.ResolveRuntimeSnapshot(190f);
 
-            Assert.That(snapshot.SpawnIntervalSeconds, Is.GreaterThan(0.75f));
+            Assert.That(snapshot.SpawnIntervalSeconds, Is.GreaterThan(0.58f));
             Assert.AreEqual(3, snapshot.BatchSize);
             Assert.AreEqual(9, snapshot.MaxAlive);
         }
