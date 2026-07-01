@@ -98,7 +98,9 @@ Keep these systems local to this template until reuse is proven across another m
 - Content validation rules around sample definitions.
 - Movement probes, wallrun, slide, double-jump, mantle/vault tuning, arena traversal geometry, and movement validation helpers.
 
-## Content Validation
+## Validation
+
+### Content Validation
 
 From the Unity editor, run:
 
