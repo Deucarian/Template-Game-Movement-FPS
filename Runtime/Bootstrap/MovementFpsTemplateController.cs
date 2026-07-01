@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Deucarian.Common;
 using Deucarian.Combat;
 using Deucarian.RunUpgrades;
 using Deucarian.TemplateGameMovementFps.Actors;
@@ -296,7 +297,7 @@ namespace Deucarian.TemplateGameMovementFps
                 CompleteVictory();
             }
 
-            Destroy(enemy.gameObject);
+            UnityObjectUtility.DestroySafely(enemy.gameObject);
         }
 
         public void DamageEnemiesInRadius(Vector3 center, float radius, double damage, DamageTypeId damageType)
@@ -801,7 +802,7 @@ namespace Deucarian.TemplateGameMovementFps
                     child.GetComponent<MovementFpsPickupActor>() != null ||
                     child.GetComponent<MovementFpsProjectileActor>() != null)
                 {
-                    Destroy(child.gameObject);
+                    UnityObjectUtility.DestroySafely(child.gameObject);
                 }
             }
 

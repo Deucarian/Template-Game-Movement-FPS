@@ -1,3 +1,4 @@
+using Deucarian.Common;
 using UnityEngine;
 
 namespace Deucarian.TemplateGameMovementFps.Actors
@@ -45,7 +46,7 @@ namespace Deucarian.TemplateGameMovementFps.Actors
             if (distance <= 1.1f)
             {
                 _session.CollectExperience(experienceAmount);
-                Destroy(gameObject);
+                UnityObjectUtility.DestroySafely(gameObject);
                 return;
             }
 
