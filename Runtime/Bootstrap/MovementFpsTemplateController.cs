@@ -74,6 +74,9 @@ namespace Deucarian.TemplateGameMovementFps
         private AudioClip _enemyClip;
         private AudioClip _pickupClip;
         private AudioClip _runClip;
+        private Texture2D _hudButtonTexture;
+        private Texture2D _hudTargetIcon;
+        private Texture2D _hudTrophyIcon;
         private GUIStyle _hudTitleStyle;
         private GUIStyle _hudLabelStyle;
         private GUIStyle _hudSmallStyle;
@@ -230,6 +233,7 @@ namespace Deucarian.TemplateGameMovementFps
             enemyObject.transform.SetParent(_runtimeRoot, false);
             enemyObject.transform.position = position;
             enemyObject.transform.localScale = new Vector3(1f, 1.15f, 1f) * definition.VisualScale;
+            AttachEnemyTargetSprite(enemyObject, definition);
             MovementFpsEnemyActor enemy = enemyObject.AddComponent<MovementFpsEnemyActor>();
             enemy.Initialize(definition, this);
             _enemies.Add(enemy);
@@ -258,6 +262,7 @@ namespace Deucarian.TemplateGameMovementFps
                 renderer.material.color = new Color(0.75f, 0.45f, 1f, 1f);
             }
 
+            AttachBillboardSprite(projectileObject, "Weapons/bullet_foam", new Vector2(0.45f, 0.45f), 0f, Color.white, hideSourceRenderer: true);
             var trail = projectileObject.AddComponent<TrailRenderer>();
             trail.time = 0.22f;
             trail.startWidth = 0.28f;
@@ -615,10 +620,12 @@ namespace Deucarian.TemplateGameMovementFps
             GameObject cameraObject = new GameObject("Player Camera");
             cameraObject.transform.SetParent(playerObject.transform, false);
             cameraObject.transform.localPosition = new Vector3(0f, 0.62f, 0f);
+            cameraObject.tag = "MainCamera";
             Camera camera = cameraObject.AddComponent<Camera>();
             cameraObject.AddComponent<AudioListener>();
             camera.nearClipPlane = 0.03f;
             camera.fieldOfView = 76f;
+            CreateViewWeapon(cameraObject.transform);
 
             _player = playerObject.AddComponent<MovementFpsPlayerController>();
             _player.Initialize(
@@ -673,12 +680,12 @@ namespace Deucarian.TemplateGameMovementFps
             _feedbackAudio.playOnAwake = false;
             _feedbackAudio.spatialBlend = 0f;
             _feedbackAudio.volume = 0.28f;
-            _weaponClip = CreateTone("movement-fps-carbine", 620f, 0.055f, 0.16f);
-            _projectileClip = CreateTone("movement-fps-launcher", 210f, 0.13f, 0.22f);
-            _powerClip = CreateTone("movement-fps-power", 860f, 0.12f, 0.18f);
-            _enemyClip = CreateTone("movement-fps-enemy", 330f, 0.08f, 0.16f);
-            _pickupClip = CreateTone("movement-fps-pickup", 1040f, 0.07f, 0.15f);
-            _runClip = CreateTone("movement-fps-run-state", 120f, 0.24f, 0.22f);
+            _weaponClip = LoadAudio("laserLarge_000") ?? CreateTone("movement-fps-carbine", 620f, 0.055f, 0.16f);
+            _projectileClip = LoadAudio("laserSmall_001") ?? CreateTone("movement-fps-launcher", 210f, 0.13f, 0.22f);
+            _powerClip = LoadAudio("impactMetal_002") ?? CreateTone("movement-fps-power", 860f, 0.12f, 0.18f);
+            _enemyClip = LoadAudio("explosionCrunch_002") ?? CreateTone("movement-fps-enemy", 330f, 0.08f, 0.16f);
+            _pickupClip = LoadAudio("confirmation_003") ?? CreateTone("movement-fps-pickup", 1040f, 0.07f, 0.15f);
+            _runClip = LoadAudio("explosionCrunch_002") ?? CreateTone("movement-fps-run-state", 120f, 0.24f, 0.22f);
         }
 
         private ParticleSystem CreatePulse(string name, Color color, float startSize, float startSpeed, float lifetime)
@@ -748,6 +755,10 @@ namespace Deucarian.TemplateGameMovementFps
             CreateSolid("Enemy Spawn Read North", new Vector3(0f, 0.05f, 17.5f), new Vector3(8f, 0.1f, 0.35f), new Color(0.68f, 0.16f, 0.2f, 1f));
             CreateSolid("Enemy Spawn Read East", new Vector3(17.5f, 0.05f, 0f), new Vector3(0.35f, 0.1f, 8f), new Color(0.68f, 0.16f, 0.2f, 1f));
             CreateSolid("Enemy Spawn Read West", new Vector3(-17.5f, 0.05f, 0f), new Vector3(0.35f, 0.1f, 8f), new Color(0.68f, 0.16f, 0.2f, 1f));
+            CreateArenaBillboard("Kenney Wide Crate Left", "Environment/crate_wide", new Vector3(-4.2f, 0.8f, -4.6f), new Vector2(1.8f, 1.0f));
+            CreateArenaBillboard("Kenney Wide Crate Right", "Environment/crate_wide", new Vector3(4.2f, 0.8f, -4.6f), new Vector2(1.8f, 1.0f));
+            CreateArenaBillboard("Kenney Small Crate North", "Environment/crate_small", new Vector3(-2.6f, 0.72f, 9.6f), new Vector2(1.0f, 0.9f));
+            CreateArenaBillboard("Kenney Target Readout", "Targets/target_detail", new Vector3(0f, 1.3f, 15.4f), new Vector2(1.5f, 1.5f));
 
             GameObject lightObject = new GameObject("Arena Directional Light");
             lightObject.transform.SetParent(_runtimeRoot, false);
@@ -783,6 +794,7 @@ namespace Deucarian.TemplateGameMovementFps
             pickupObject.transform.SetParent(_runtimeRoot, false);
             pickupObject.transform.position = position;
             pickupObject.transform.localScale = Vector3.one * 0.38f;
+            AttachBillboardSprite(pickupObject, "Pickups/xp_gem_blue", new Vector2(0.65f, 0.65f), 0f, Color.white, hideSourceRenderer: true);
             MovementFpsPickupActor pickup = pickupObject.AddComponent<MovementFpsPickupActor>();
             pickup.Initialize(this, amount);
             PlayFeedback(_pickupPulse, position, 12, _pickupClip);
@@ -821,6 +833,9 @@ namespace Deucarian.TemplateGameMovementFps
                 return;
             }
 
+            _hudButtonTexture = LoadTexture("UI/button_rectangle_depth_gloss");
+            _hudTargetIcon = LoadTexture("UI/icon_target");
+            _hudTrophyIcon = LoadTexture("UI/icon_trophy");
             _hudTitleStyle = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 17,
@@ -877,6 +892,11 @@ namespace Deucarian.TemplateGameMovementFps
 
             EnsureHudStyles();
             GUILayout.BeginArea(new Rect(16f, 16f, 430f, 276f), GUI.skin.box);
+            if (_hudTargetIcon != null)
+            {
+                GUI.DrawTexture(new Rect(388f, 24f, 32f, 32f), _victory && _hudTrophyIcon != null ? _hudTrophyIcon : _hudTargetIcon, ScaleMode.ScaleToFit, true);
+            }
+
             GUILayout.Label("Movement FPS Template", _hudTitleStyle);
             DrawHudBar("Health", _player.MaximumHealth <= 0d ? 0f : (float)(_player.CurrentHealth / _player.MaximumHealth), new Color(0.9f, 0.24f, 0.22f));
             DrawHudBar("XP", _progression.CurrentExperience / (float)_progression.RequiredExperience, new Color(0.24f, 0.82f, 1f));
@@ -898,6 +918,12 @@ namespace Deucarian.TemplateGameMovementFps
                 GUILayout.Label("Choose upgrade: 1 / 2 / 3", _hudLabelStyle);
                 for (int index = 0; index < _progression.CurrentDraft.Count; index++)
                 {
+                    Rect row = GUILayoutUtility.GetRect(392f, 22f);
+                    if (_hudButtonTexture != null)
+                    {
+                        GUI.DrawTexture(row, _hudButtonTexture, ScaleMode.StretchToFill, true);
+                    }
+
                     GUILayout.Label($"{index + 1}. {_progression.CurrentDraft[index].Id.Value}", _hudSmallStyle);
                 }
             }
@@ -917,6 +943,145 @@ namespace Deucarian.TemplateGameMovementFps
             }
 
             GUILayout.EndArea();
+        }
+
+        private void AttachEnemyTargetSprite(GameObject enemyObject, MovementFpsEnemyDefinition definition)
+        {
+            string texturePath = "Targets/target_large";
+            Vector2 size = new Vector2(1.15f, 1.15f);
+            Color tint = new Color(1f, 1f, 1f, 0.96f);
+            if (definition.Id == BasicMovementFpsGame.LeapingRunnerId)
+            {
+                texturePath = "Targets/target_small";
+                size = new Vector2(0.95f, 0.95f);
+            }
+            else if (definition.Id == BasicMovementFpsGame.BoneBulwarkId)
+            {
+                texturePath = "Targets/target_detail";
+                size = new Vector2(1.28f, 1.28f);
+            }
+            else if (definition.IsMiniBoss)
+            {
+                texturePath = "Targets/target_detail";
+                size = new Vector2(1.7f, 1.7f);
+                tint = new Color(1f, 0.9f, 0.65f, 1f);
+            }
+
+            AttachBillboardSprite(enemyObject, texturePath, size, 0.35f, tint, hideSourceRenderer: true);
+        }
+
+        private void CreateViewWeapon(Transform cameraTransform)
+        {
+            Texture2D texture = LoadTexture("Weapons/blaster_e");
+            if (cameraTransform == null || texture == null)
+            {
+                return;
+            }
+
+            GameObject weapon = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            weapon.name = "Kenney Blaster View";
+            weapon.transform.SetParent(cameraTransform, false);
+            weapon.transform.localPosition = new Vector3(0.43f, -0.32f, 0.82f);
+            weapon.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+            weapon.transform.localScale = new Vector3(0.58f, 0.38f, 1f);
+            Renderer renderer = weapon.GetComponent<Renderer>();
+            if (renderer != null)
+            {
+                renderer.sharedMaterial = CreateTextureMaterial(texture, Color.white);
+            }
+
+            Collider collider = weapon.GetComponent<Collider>();
+            if (collider != null)
+            {
+                UnityObjectUtility.DestroySafely(collider);
+            }
+        }
+
+        private void CreateArenaBillboard(string name, string texturePath, Vector3 position, Vector2 size)
+        {
+            GameObject anchor = new GameObject(name);
+            anchor.transform.SetParent(_runtimeRoot, false);
+            anchor.transform.position = position;
+            AttachBillboardSprite(anchor, texturePath, size, 0f, Color.white, hideSourceRenderer: false);
+        }
+
+        private static bool AttachBillboardSprite(GameObject target, string texturePath, Vector2 size, float yOffset, Color tint, bool hideSourceRenderer)
+        {
+            Texture2D texture = LoadTexture(texturePath);
+            if (target == null || texture == null)
+            {
+                return false;
+            }
+
+            Transform existing = target.transform.Find("Kenney Billboard");
+            GameObject sprite = existing == null ? GameObject.CreatePrimitive(PrimitiveType.Quad) : existing.gameObject;
+            sprite.name = "Kenney Billboard";
+            sprite.transform.SetParent(target.transform, false);
+            sprite.transform.localPosition = Vector3.up * yOffset;
+            sprite.transform.localScale = new Vector3(size.x, size.y, 1f);
+            Renderer spriteRenderer = sprite.GetComponent<Renderer>();
+            if (spriteRenderer != null)
+            {
+                spriteRenderer.sharedMaterial = CreateTextureMaterial(texture, tint);
+            }
+
+            Collider spriteCollider = sprite.GetComponent<Collider>();
+            if (spriteCollider != null)
+            {
+                UnityObjectUtility.DestroySafely(spriteCollider);
+            }
+
+            if (sprite.GetComponent<MovementFpsBillboard>() == null)
+            {
+                sprite.AddComponent<MovementFpsBillboard>();
+            }
+
+            Renderer sourceRenderer = target.GetComponent<Renderer>();
+            if (hideSourceRenderer && sourceRenderer != null)
+            {
+                sourceRenderer.enabled = false;
+            }
+
+            return true;
+        }
+
+        private static Texture2D LoadTexture(string path)
+        {
+            return Resources.Load<Texture2D>("Kenney/MovementFps/" + path);
+        }
+
+        private static AudioClip LoadAudio(string name)
+        {
+            return Resources.Load<AudioClip>("Kenney/MovementFps/Audio/" + name);
+        }
+
+        private static Material CreateTextureMaterial(Texture2D texture, Color tint)
+        {
+            Shader shader = Shader.Find("Unlit/Transparent") ?? Shader.Find("Sprites/Default") ?? Shader.Find("Standard");
+            var material = new Material(shader);
+            material.mainTexture = texture;
+            material.color = tint;
+            return material;
+        }
+    }
+
+    internal sealed class MovementFpsBillboard : MonoBehaviour
+    {
+        private void LateUpdate()
+        {
+            Camera camera = Camera.main;
+            if (camera == null)
+            {
+                return;
+            }
+
+            Vector3 direction = transform.position - camera.transform.position;
+            if (direction.sqrMagnitude <= 0.0001f)
+            {
+                return;
+            }
+
+            transform.rotation = Quaternion.LookRotation(direction.normalized, Vector3.up);
         }
     }
 }

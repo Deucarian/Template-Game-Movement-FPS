@@ -2,6 +2,8 @@
 
 Open `Scenes/BasicMovementFpsGame.unity` and enter Play Mode. The bootstrap object builds the arena, player, camera, horde loop, XP gems, draft UI, victory, defeat, and restart flow at runtime.
 
+The runtime-built presentation loads curated Kenney CC0 sample assets from `Resources/Kenney` for weapon view art, target readouts, pickups, UI accents, arena props, and feedback audio.
+
 Controls:
 
 - WASD: move
