@@ -1,0 +1,35 @@
+{
+  "packageId": "com.deucarian.template.game.movement-fps",
+  "displayName": "Deucarian Template Game - Movement FPS",
+  "ownedCapabilities": [],
+  "runtimeAssemblies": [
+    "Deucarian.TemplateGameMovementFps"
+  ],
+  "editorAssemblies": [
+    "Deucarian.TemplateGameMovementFps.Editor"
+  ],
+  "sampleAssemblies": [
+    "Deucarian.TemplateGameMovementFps.BasicMovementFpsGame"
+  ],
+  "testAssemblies": [
+    "Deucarian.TemplateGameMovementFps.PlayModeTests",
+    "Deucarian.TemplateGameMovementFps.Tests"
+  ],
+  "requiredDependencies": [
+    "com.deucarian.common",
+    "com.deucarian.combat",
+    "com.deucarian.game-content-authoring",
+    "com.deucarian.gameplay-foundation",
+    "com.deucarian.run-upgrades",
+    "com.unity.inputsystem"
+  ],
+  "optionalVersionDefinedDependencies": [],
+  "allowedDirectDebugCalls": [
+    {
+      "file": "Editor/MovementFpsEditorContentValidation.cs",
+      "reason": "Template editor content validation intentionally prints validation summaries to the Unity console for developer visibility."
+    }
+  ],
+  "allowedDirectUnityObjectLifetimeCalls": [],
+  "expectedSamplesRoot": "Samples~/BasicMovementFpsGame"
+}

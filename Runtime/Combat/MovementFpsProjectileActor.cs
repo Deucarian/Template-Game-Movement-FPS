@@ -1,3 +1,4 @@
+using Deucarian.Common;
 using Deucarian.Combat;
 using Deucarian.TemplateGameMovementFps.Actors;
 using UnityEngine;
@@ -37,7 +38,7 @@ namespace Deucarian.TemplateGameMovementFps.Combat
             _remainingLifetime -= deltaTime;
             if (_remainingLifetime <= 0f)
             {
-                Destroy(gameObject);
+                UnityObjectUtility.DestroySafely(gameObject);
                 return;
             }
 
@@ -50,7 +51,7 @@ namespace Deucarian.TemplateGameMovementFps.Combat
                     enemy.ApplyDamage(_damage, new CombatantId("combatant.player"), _damageType);
                 }
 
-                Destroy(gameObject);
+                UnityObjectUtility.DestroySafely(gameObject);
                 return;
             }
 
