@@ -31,6 +31,7 @@ Required dependencies and why:
 - `com.deucarian.game-content-authoring`: editor validation/content authoring hooks.
 - `com.deucarian.gameplay-foundation`: shared IDs and deterministic primitives.
 - `com.deucarian.run-upgrades`: level-up draft and upgrade effect adapters.
+- `com.unity.modules.particlesystem`: built-in Particle System module used by runtime feedback effects.
 - `com.unity.inputsystem`: FPS input actions and keyboard/mouse input.
 
 Optional/version-defined dependencies:
