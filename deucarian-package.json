@@ -1,6 +1,7 @@
 {
   "packageId": "com.deucarian.template.game.movement-fps",
   "displayName": "Deucarian Template Game - Movement FPS",
+  "samplePolicy": "template",
   "ownedCapabilities": [],
   "runtimeAssemblies": [
     "Deucarian.TemplateGameMovementFps"
