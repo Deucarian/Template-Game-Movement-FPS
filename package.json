@@ -27,7 +27,8 @@
     "com.deucarian.game-content-authoring": "0.1.1",
     "com.deucarian.gameplay-foundation": "0.1.1",
     "com.deucarian.run-upgrades": "0.1.1",
-    "com.unity.inputsystem": "1.17.0"
+    "com.unity.inputsystem": "1.17.0",
+    "com.unity.modules.particlesystem": "1.0.0"
   },
   "samples": [
     {
