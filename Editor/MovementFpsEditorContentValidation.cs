@@ -10,7 +10,7 @@ namespace Deucarian.TemplateGameMovementFps.Editor
 {
     public static class MovementFpsEditorContentValidation
     {
-        public const string MenuPath = "Tools/Deucarian/Templates/Movement FPS/Validate Content";
+        public const string MenuPath = "Tools/Deucarian/Templates/Games/Movement FPS/Validate Content";
         private const string ReportTitle = "Movement FPS Template Content Validation";
         private const string SampleName = "BasicMovementFpsGame";
 
