@@ -82,6 +82,7 @@ This slice uses:
 - `com.deucarian.combat` for health and damage resolution.
 - `com.deucarian.run-upgrades` for stable upgrade IDs, weighted draft choices, ranks, and selection state.
 - `com.deucarian.game-content-authoring` from editor validation code for report formatting.
+- `com.deucarian.editor` for the Control Center validation contribution.
 - `com.unity.inputsystem` for the sample first-person input path.
 
 It deliberately does not use Deucarian Session for gameplay run state and does not route player movement through World Navigation.
@@ -104,9 +105,9 @@ Keep these systems local to this template until reuse is proven across another m
 
 From the Unity editor, run:
 
-`Tools > Deucarian > Templates > Movement FPS > Validate Content`
+`Deucarian Control Center > Developer > Movement FPS Content > Validate Content`
 
-The menu validates sample files and runtime catalogs for IDs, references, loadout entries, wave enemies, upgrade targets, and miniboss references. The report is written to the Unity console for template developer visibility.
+The Control Center action validates sample files and runtime catalogs for IDs, references, loadout entries, wave enemies, upgrade targets, and miniboss references. The report is written to the Unity console for template developer visibility.
 
 Before committing package changes, run:
 

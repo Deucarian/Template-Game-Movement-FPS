@@ -3,6 +3,7 @@
   "rootNamespace": "Deucarian.TemplateGameMovementFps.Editor",
   "references": [
     "Deucarian.TemplateGameMovementFps",
+    "Deucarian.Editor",
     "Deucarian.GameContentAuthoring.Editor",
     "Deucarian.GameplayFoundation"
   ],
