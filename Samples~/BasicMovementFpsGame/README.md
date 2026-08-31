@@ -27,4 +27,4 @@ The sample run now includes local wave escalation, weighted horde enemies, and a
 
 The HUD includes lightweight run summary feedback. The Choir Ogre victory reward is a local summary marker only; no persistent profile or meta system is included yet.
 
-Run `Tools > Deucarian > Templates > Movement FPS > Validate Content` after editing sample loadout or runtime catalog definitions.
+Run Deucarian Control Center > Developer > Movement FPS Content > Validate Content after editing sample loadout or runtime catalog definitions.

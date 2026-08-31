@@ -22,12 +22,13 @@ This package must not own:
 
 Allowed dependency shape:
 
-- Template package may depend on lower reusable gameplay packages and Unity Input System needed by its playable sample.
+- Template package may depend on lower reusable gameplay packages, Editor for its Control Center contribution, and Unity Input System needed by its playable sample.
 
 Required dependencies and why:
 
 - `com.deucarian.common`: approved transient Unity object cleanup for local template runtime objects.
 - `com.deucarian.combat`: local gunplay and damage flow.
+- `com.deucarian.editor`: shared Control Center contracts for template validation discovery.
 - `com.deucarian.game-content-authoring`: editor validation/content authoring hooks.
 - `com.deucarian.gameplay-foundation`: shared IDs and deterministic primitives.
 - `com.deucarian.run-upgrades`: level-up draft and upgrade effect adapters.

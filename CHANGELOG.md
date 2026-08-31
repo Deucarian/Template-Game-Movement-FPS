@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Registered Movement FPS sample validation with Deucarian Control Center and removed its global template menu entry.
+
 ## [0.1.1] - 2026-07-17
 
 - Declared the built-in Particle System module required by runtime feedback effects in minimal Unity hosts.
