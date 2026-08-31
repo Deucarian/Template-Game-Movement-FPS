@@ -10,11 +10,9 @@ namespace Deucarian.TemplateGameMovementFps.Editor
 {
     public static class MovementFpsEditorContentValidation
     {
-        public const string MenuPath = "Tools/Deucarian/Templates/Games/Movement FPS/Validate Content";
         private const string ReportTitle = "Movement FPS Template Content Validation";
         private const string SampleName = "BasicMovementFpsGame";
 
-        [MenuItem(MenuPath, priority = 331)]
         public static void ValidateContent()
         {
             ContentValidationReport report = BuildBasicSampleReport();
@@ -48,6 +46,20 @@ namespace Deucarian.TemplateGameMovementFps.Editor
             return report;
         }
 
+        internal static bool HasBundledSampleContent()
+        {
+            if (!TryResolveSampleRoot(out string sampleRoot))
+            {
+                return false;
+            }
+
+            return File.Exists(Path.Combine(
+                sampleRoot,
+                "Content/DefaultLoadout/loadout.json".Replace(
+                    '/',
+                    Path.DirectorySeparatorChar)));
+        }
+
         public static ContentValidationReport ValidateContentLibrary(MovementFpsContentLibrary library)
         {
             MovementFpsContentValidationReport movementFpsReport = MovementFpsContentValidator.Validate(library);
@@ -67,15 +79,12 @@ namespace Deucarian.TemplateGameMovementFps.Editor
 
         private static string ResolveSampleRoot(ContentValidationReport report)
         {
-            UnityEditor.PackageManager.PackageInfo packageInfo =
-                UnityEditor.PackageManager.PackageInfo.FindForAssembly(typeof(BasicMovementFpsGame).Assembly);
-            if (packageInfo == null || string.IsNullOrWhiteSpace(packageInfo.resolvedPath))
+            if (!TryResolveSampleRoot(out string sampleRoot))
             {
                 report.AddError("Could not resolve the Movement FPS template package path.", SampleName);
                 return null;
             }
 
-            string sampleRoot = Path.Combine(packageInfo.resolvedPath, "Samples~", SampleName);
             if (!Directory.Exists(sampleRoot))
             {
                 report.AddError("Could not find the BasicMovementFpsGame sample at " + sampleRoot + ".", SampleName);
@@ -83,6 +92,21 @@ namespace Deucarian.TemplateGameMovementFps.Editor
             }
 
             return sampleRoot;
+        }
+
+        private static bool TryResolveSampleRoot(out string sampleRoot)
+        {
+            UnityEditor.PackageManager.PackageInfo packageInfo =
+                UnityEditor.PackageManager.PackageInfo.FindForAssembly(
+                    typeof(BasicMovementFpsGame).Assembly);
+            if (packageInfo == null || string.IsNullOrWhiteSpace(packageInfo.resolvedPath))
+            {
+                sampleRoot = string.Empty;
+                return false;
+            }
+
+            sampleRoot = Path.Combine(packageInfo.resolvedPath, "Samples~", SampleName);
+            return true;
         }
 
         private static void RequireSampleFile(string sampleRoot, string relativePath, ContentValidationReport report)
