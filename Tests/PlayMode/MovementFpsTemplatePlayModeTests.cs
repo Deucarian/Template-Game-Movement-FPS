@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Reflection;
 using Deucarian.TemplateGameMovementFps.Actors;
 using Deucarian.TemplateGameMovementFps.Combat;
 using Deucarian.TemplateGameMovementFps.Movement;
@@ -90,7 +89,7 @@ namespace Deucarian.TemplateGameMovementFps.PlayModeTests
             motor.Tick(Vector2.up, true, false, false, 0.12f);
             float sprintSpeed = Vector3.ProjectOnPlane(motor.Velocity, Vector3.up).magnitude;
 
-            SetPrivateField(motor, "_velocity", Vector3.forward * 12f);
+            motor.SetVelocity(Vector3.forward * 12f);
             motor.Tick(Vector2.up, true, true, true, false, false, 0.02f);
             Assert.That(sprintSpeed, Is.GreaterThan(0f));
             Assert.That(motor.State, Is.EqualTo(WallrunnerMovementState.Sliding));
@@ -100,11 +99,8 @@ namespace Deucarian.TemplateGameMovementFps.PlayModeTests
             yield return null;
 
             GameObject airbornePlayer = CreateMotorPlayer(new Vector3(0f, 2f, 0f), out WallrunnerMotor airborneMotor);
-            SetPrivateField(airborneMotor, "<State>k__BackingField", WallrunnerMovementState.Airborne);
-            SetPrivateField(airborneMotor, "_grounded", false);
-            SetPrivateField(airborneMotor, "_groundedJumpGraceTimer", 0f);
-            SetPrivateField(airborneMotor, "_airJumpsRemaining", 1);
-            SetPrivateField(airborneMotor, "_velocity", Vector3.forward * 4f);
+            airborneMotor.Tick(Vector2.zero, false, false, false, 0.2f);
+            airborneMotor.SetVelocity(Vector3.forward * 4f);
             airborneMotor.Tick(Vector2.up, true, false, false, true, false, 0.02f);
 
             Assert.That(airborneMotor.Velocity.y, Is.GreaterThan(0f));
@@ -119,15 +115,16 @@ namespace Deucarian.TemplateGameMovementFps.PlayModeTests
             wall.transform.position = new Vector3(0.9f, 2f, 0f);
             wall.transform.localScale = new Vector3(0.2f, 4f, 10f);
             GameObject player = CreateMotorPlayer(new Vector3(0f, 2f, 0f), out WallrunnerMotor motor);
-            SetPrivateField(motor, "_groundedJumpGraceTimer", 0f);
-            SetPrivateField(motor, "_velocity", Vector3.forward * 8f);
+            motor.Tick(Vector2.zero, false, false, false, 0.2f);
+            motor.SetVelocity(Vector3.forward * 8f);
             Physics.SyncTransforms();
             yield return null;
 
             motor.Tick(Vector2.up, true, false, false, false, false, 0.02f);
             Assert.That(motor.State, Is.EqualTo(WallrunnerMovementState.Wallrunning));
 
-            SetPrivateField(motor, "_airJumpsRemaining", 0);
+            motor.RestoreRuntimeSnapshot(WithAirJumpsRemaining(motor.CaptureRuntimeSnapshot(), 0));
+            Assert.That(motor.AirJumpsRemaining, Is.Zero);
             motor.Tick(Vector2.up, true, false, false, true, false, 0.02f);
 
             Assert.That(motor.State, Is.EqualTo(WallrunnerMovementState.Airborne));
@@ -431,11 +428,50 @@ namespace Deucarian.TemplateGameMovementFps.PlayModeTests
             return player;
         }
 
-        private static void SetPrivateField<T>(WallrunnerMotor motor, string fieldName, T value)
+        private static WallrunnerMotor.RuntimeSnapshot WithAirJumpsRemaining(WallrunnerMotor.RuntimeSnapshot snapshot, int remaining)
         {
-            FieldInfo field = typeof(WallrunnerMotor).GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic);
-            Assert.That(field, Is.Not.Null);
-            field.SetValue(motor, value);
+            return new WallrunnerMotor.RuntimeSnapshot(
+                snapshot.Position,
+                snapshot.Rotation,
+                snapshot.Velocity,
+                snapshot.WallNormal,
+                snapshot.GroundNormal,
+                snapshot.WallrunLockedNormal,
+                snapshot.WallrunLockedDirection,
+                snapshot.WallrunActiveDirection,
+                snapshot.WallrunGuidanceDirection,
+                snapshot.WallrunBlockedNormal,
+                snapshot.WallrunChainLockedNormal,
+                snapshot.WallrunChainLockedDirection,
+                snapshot.WallrunSurfaceTransform,
+                snapshot.BunnyHopCarryVelocity,
+                snapshot.VaultStartPosition,
+                snapshot.VaultTargetPosition,
+                snapshot.VaultExitVelocity,
+                snapshot.LookForward,
+                snapshot.SlideTimer,
+                snapshot.WallrunTimer,
+                snapshot.WallrunStartSpeed,
+                snapshot.WallrunPeakSpeed,
+                snapshot.WallrunSameWallLockoutTimer,
+                snapshot.WallrunDetachReattachTimer,
+                snapshot.SlideEntrySpeed,
+                snapshot.GroundSnapLockoutTimer,
+                snapshot.GroundedJumpGraceTimer,
+                snapshot.SlideJumpGraceTimer,
+                snapshot.AirborneSlideBufferTimer,
+                snapshot.BunnyHopWindowTimer,
+                snapshot.VaultBlendTimer,
+                snapshot.VaultBlendDuration,
+                remaining,
+                snapshot.Grounded,
+                snapshot.WallrunFatigued,
+                snapshot.WallrunChainSameDirectionLocked,
+                snapshot.WallrunNearTop,
+                snapshot.WallrunStyle,
+                snapshot.ActiveVaultStyle,
+                snapshot.LastVaultStyle,
+                snapshot.State);
         }
     }
 }

@@ -7,7 +7,12 @@
 Local first-person movement and input:
 
 - `WallrunnerMotor`
+- `WallrunnerSession` and its composed movement policies
+- `IWallrunnerEnvironment` / `UnityWallrunnerEnvironment` for collision and pose access
 - `FpsInputReader`
+
+See [Movement composition](movement-architecture.md) for state ownership,
+ordered tick behavior, compatibility contracts, and regression coverage.
 
 `Runtime/Actors`
 

@@ -67,6 +67,7 @@ The scene contains a tiny bootstrap object. At runtime it creates the arena, pla
 - Main runtime catalog: `Runtime/BasicMovementFpsGame.cs`
 - Runtime controller: `Runtime/MovementFpsTemplateController.cs`
 - Movement kit: `Runtime/Movement`
+- Movement composition and compatibility: `Documentation~/movement-architecture.md`
 - Gun and projectile kit: `Runtime/Combat`
 - Content validation: `Runtime/Content/MovementFpsContentValidation.cs`
 - Editor validation menu: `Editor/MovementFpsEditorContentValidation.cs`
