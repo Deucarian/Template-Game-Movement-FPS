@@ -1,5 +1,23 @@
 # Movement FPS Validation
 
+Gameplay composition regression suites:
+
+- `MovementFpsCompositionTests`: scene-independent run transitions, loadout ordering and health reset.
+- `MovementFpsCompositionCompatibilityTests`: controller serialized fields/GUIDs, state ownership and input-action disposal.
+- `MovementFpsCompositionPlayModeTests`: generated material/audio lifetime and public player reset in Unity.
+
+See [Gameplay composition](gameplay-composition.md) for run/player ownership and
+ordered frame dispatch. Run both EditMode and PlayMode suites after changing these owners.
+
+Movement composition regression suites:
+
+- `WallrunnerSessionTests`: scene-independent movement transitions/math through an analytic environment.
+- `WallrunnerCompatibilityTests`: serialized field inventory, component GUID, snapshot roundtrip and Unity ownership boundary.
+- `MovementFpsTemplatePlayModeTests`: actual Unity movement plus the existing gameplay, presentation, combat and run smoke tests.
+
+See [Movement composition](movement-architecture.md) for exact behavior ownership
+and coverage. Run both EditMode and PlayMode suites after changing the motor.
+
 Phase 2V through 2Y validation targets:
 
 - Unity package import/compile
