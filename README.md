@@ -65,8 +65,10 @@ The scene contains a tiny bootstrap object. At runtime it creates the arena, pla
 - Sample scene: `Samples~/BasicMovementFpsGame/Scenes/BasicMovementFpsGame.unity`
 - Sample bootstrap: `Samples~/BasicMovementFpsGame/Scripts/BasicMovementFpsGameBootstrap.cs`
 - Main runtime catalog: `Runtime/BasicMovementFpsGame.cs`
-- Runtime controller: `Runtime/MovementFpsTemplateController.cs`
+- Runtime controller: `Runtime/Bootstrap/MovementFpsTemplateController.cs`
+- Run, player, presentation and lifetime composition: `Documentation~/gameplay-composition.md`
 - Movement kit: `Runtime/Movement`
+- Movement composition and compatibility: `Documentation~/movement-architecture.md`
 - Gun and projectile kit: `Runtime/Combat`
 - Content validation: `Runtime/Content/MovementFpsContentValidation.cs`
 - Editor validation menu: `Editor/MovementFpsEditorContentValidation.cs`

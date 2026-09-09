@@ -3,7 +3,7 @@ using UnityEngine.InputSystem;
 
 namespace Deucarian.TemplateGameMovementFps.Movement
 {
-    public sealed class FpsInputReader
+    public sealed class FpsInputReader : System.IDisposable
     {
         private readonly InputAction _moveAction;
         private readonly InputAction _lookAction;
@@ -15,6 +15,7 @@ namespace Deucarian.TemplateGameMovementFps.Movement
         private readonly InputAction _nextGunAction;
         private readonly InputAction _pauseAction;
         private bool _enabled;
+        private bool _disposed;
 
         public FpsInputReader()
         {
@@ -76,6 +77,11 @@ namespace Deucarian.TemplateGameMovementFps.Movement
 
         public void Enable()
         {
+            if (_disposed)
+            {
+                throw new System.ObjectDisposedException(nameof(FpsInputReader));
+            }
+
             if (_enabled)
             {
                 return;
@@ -111,6 +117,26 @@ namespace Deucarian.TemplateGameMovementFps.Movement
             _pauseAction.Disable();
             ResetFrameValues();
             _enabled = false;
+        }
+
+        public void Dispose()
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            Disable();
+            _moveAction.Dispose();
+            _lookAction.Dispose();
+            _sprintAction.Dispose();
+            _slideAction.Dispose();
+            _jumpAction.Dispose();
+            _fireAction.Dispose();
+            _reloadAction.Dispose();
+            _nextGunAction.Dispose();
+            _pauseAction.Dispose();
+            _disposed = true;
         }
 
         public void Read()

@@ -8,7 +8,8 @@
     "Deucarian.Combat",
     "Deucarian.GameContentAuthoring.Editor",
     "Deucarian.GameplayFoundation",
-    "Deucarian.RunUpgrades"
+    "Deucarian.RunUpgrades",
+    "Unity.InputSystem"
   ],
   "includePlatforms": [
     "Editor"
