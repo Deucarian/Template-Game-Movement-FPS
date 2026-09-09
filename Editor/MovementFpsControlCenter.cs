@@ -21,7 +21,9 @@ namespace Deucarian.TemplateGameMovementFps.Editor
                 MovementFpsEditorContentValidation.ValidateContent,
                 PackageId,
                 searchTerms: new[] { "movement", "fps", "template", "validate" },
-                order: 260));
+                order: 260, createPage: () => DeucarianEditorActionPage.Create(ToolId,
+                    "Validate the bundled Movement FPS sample content. Opening this page does not run validation.",
+                    "Validate content", MovementFpsEditorContentValidation.ValidateContent)));
             DeucarianControlCenterRegistry.RegisterCardProvider(new Provider());
         }
 
