@@ -7,13 +7,18 @@
 Local first-person movement and input:
 
 - `WallrunnerMotor`
+- `WallrunnerSession` and its composed movement policies
+- `IWallrunnerEnvironment` / `UnityWallrunnerEnvironment` for collision and pose access
 - `FpsInputReader`
+
+See [Movement composition](movement-architecture.md) for state ownership,
+ordered tick behavior, compatibility contracts, and regression coverage.
 
 `Runtime/Actors`
 
 Local sample actors:
 
-- player controller
+- player controller with composed loadout, health, combat and camera owners
 - enemy actor
 - XP pickup actor
 
@@ -33,6 +38,7 @@ Local adapter for XP, draft state, and applying run-upgrade effects including pr
 
 Local run-state and horde-wave code:
 
+- run session, captured input and explicit world/feedback ports
 - run state enum
 - run summary tracker
 - local run reward records
@@ -52,7 +58,11 @@ Local content assembly and validation:
 
 `Runtime/Bootstrap`
 
-Template composition for the sample run. This builds the runtime arena, player, enemies, pickups, miniboss/victory flow, run summary feedback, and simple HUD without involving Deucarian Session.
+Template composition for the sample run. Separate owners build the runtime arena,
+manage scene actors, present feedback/HUD snapshots and release generated resources.
+See [Gameplay composition](gameplay-composition.md) for run/player state ownership,
+frame ordering, public compatibility and lifetime boundaries. Deucarian Session is
+not involved in this local run lifecycle.
 
 ## Samples
 
