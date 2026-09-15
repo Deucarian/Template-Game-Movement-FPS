@@ -2,11 +2,26 @@ using System.Linq;
 using Deucarian.Editor;
 using Deucarian.TemplateGameMovementFps.Editor;
 using NUnit.Framework;
+using UnityEngine.UIElements;
 
 namespace Deucarian.TemplateGameMovementFps.Tests
 {
     public sealed class MovementFpsControlCenterTests
     {
+        [Test]
+        public void NativeValidationPageStartsUncheckedAndPreservesTheExplicitAction()
+        {
+            using (var page = MovementFpsValidationWorkspace.CreatePage())
+            {
+                Assert.That(page.Root.Query<IMGUIContainer>().ToList(), Is.Empty);
+                Assert.That(page.Root.Q<Button>("movement-validate"), Is.Not.Null);
+                Assert.That(page.Root.Q("movement-state").ClassListContains("dw-panel-flush"), Is.True);
+                Assert.That(page.Root.Q("movement-state").ClassListContains("dw-focus--info"), Is.False,
+                    "Before validation the shield is neutral, not a validation result.");
+                Assert.That(page.Root.Query<Label>().ToList().Count(value => value.text == "Not checked"), Is.EqualTo(2));
+            }
+        }
+
         [Test]
         public void ContributionUsesBundledSampleStateAndStableValidationAction()
         {

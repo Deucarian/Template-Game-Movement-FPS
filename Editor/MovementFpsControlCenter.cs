@@ -18,12 +18,10 @@ namespace Deucarian.TemplateGameMovementFps.Editor
                 "Movement FPS Validation",
                 "Validate the bundled Movement FPS sample content.",
                 DeucarianControlCenterArea.Developer,
-                MovementFpsEditorContentValidation.ValidateContent,
+                MovementFpsValidationWorkspace.Open,
                 PackageId,
-                searchTerms: new[] { "movement", "fps", "template", "validate" },
-                order: 260, createPage: () => DeucarianEditorActionPage.Create(ToolId,
-                    "Validate the bundled Movement FPS sample content. Opening this page does not run validation.",
-                    "Validate content", MovementFpsEditorContentValidation.ValidateContent)));
+                iconKey: "shield-check", searchTerms: new[] { "movement", "fps", "template", "validate" },
+                order: 260, createPage: MovementFpsValidationWorkspace.CreatePage));
             DeucarianControlCenterRegistry.RegisterCardProvider(new Provider());
         }
 
@@ -58,7 +56,7 @@ namespace Deucarian.TemplateGameMovementFps.Editor
                         new DeucarianControlCenterAction(
                             "validate-content",
                             "Validate Content",
-                            MovementFpsEditorContentValidation.ValidateContent)
+                            MovementFpsValidationWorkspace.Open, navigationToolId: ToolId)
                     },
                     searchTerms: new[] { "movement", "fps", "sample", "validation" });
             }
